@@ -1,16 +1,11 @@
-const Pool = require("pg").Pool;
-require('dotenv').config();
-
-// const pool = new Pool({
-//     user: process.env.POSTGRES_USER,
-//     password: process.env.POSTGRES_PASSWORD,
-//     host: process.env.POSTGRES_HOST,
-//     port: process.env.DB_PORT,
-//     database: process.env.POSTGRES_DATABASE
-// });
+const { Pool } = require("pg");
+require("dotenv").config();
 
 const pool = new Pool({
-    connectionString: process.env.POSTGRES_URL + "?sslmode=require",
-})
+    connectionString: process.env.POSTGRES_URL,
+    ssl: process.env.DB_SSL === "true"
+        ? { rejectUnauthorized: false }
+        : false
+});
 
 module.exports = pool;
