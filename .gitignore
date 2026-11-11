@@ -1,32 +1,4 @@
-# Dependencies
-node_modules/
-
-# Environment variables
-.env
-.env.*
-!.env.example
-
-# Build files
-dist/
-build/
-
-# Logs
-*.log
-npm-debug.log*
-
-# Operating system
-.DS_Store
-Thumbs.db
-
-# VS Code
-.vscode/
-
-# Test coverage
-coverage/
-
-# Temporary files
-*.tmp
-
-# Local database files
-*.sqlite
-*.db
+Main/backend/backend/settings.py
+**/.DS_Store
+**/.vscode
+**/.env
