@@ -18,18 +18,25 @@
     display: flex;
     flex-direction: column;
     width: 100%;
-    height: 80%;
     flex-shrink: 0;
     background: #942D2D;
     font-family: Darker Grotesque;
     font-size: 15px;
-    margin: 5%;
+    margin: 5% 0;
+    padding: 16px;
+    box-sizing: border-box;
+  }
+
+  .totals h2 {
+    margin: 0 0 8px;
+    color: #EBF2D5;
   }
 
   .checkingout {
     width: 100%;
     display: flex;
-    margin:5%;
+    gap: 12px;
+    margin: 5% 0;
   }
   
   .checkout {
@@ -84,7 +91,7 @@
   // }
   
   .checkingout button {
-    width: 50%;
+    flex: 1;
     height: 50px;
     font-family: Darker Grotesque;
     border: none;
@@ -94,6 +101,22 @@
     border: 1px solid #942D2D;
     color: #942D2D;
     background-color: #EBF2D5;
+  }
+
+  .order-placed-message {
+    max-width: 760px;
+    margin: 16px auto;
+    padding: 18px;
+    border: 1px solid #6b8f5e;
+    border-radius: 8px;
+    background: #e5f0d7;
+    color: #315d2e;
+    text-align: center;
+  }
+
+  .empty-cart-section {
+    padding: 24px 16px;
+    text-align: center;
   }
 
 

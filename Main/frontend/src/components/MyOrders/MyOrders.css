@@ -1,0 +1,150 @@
+.my-orders-page {
+  min-height: 55vh;
+  padding: 28px clamp(16px, 5vw, 64px);
+  background: #ebf2d5;
+  color: #942d2d;
+}
+
+.my-orders-header {
+  text-align: center;
+}
+
+.my-orders-header h1 {
+  margin-bottom: 4px;
+}
+
+.my-orders-list {
+  display: grid;
+  gap: 18px;
+  max-width: 1000px;
+  margin: 24px auto;
+}
+
+.my-order-card {
+  padding: 20px;
+  border-radius: 10px;
+  background: #fffdf5;
+  box-shadow: 0 5px 16px rgba(67, 29, 29, 0.13);
+}
+
+.my-order-title {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  border-bottom: 1px solid rgba(148, 45, 45, 0.2);
+}
+
+.my-order-title h2 {
+  margin: 0;
+}
+
+.my-order-title p,
+.my-order-meta {
+  margin: 4px 0 12px;
+}
+
+.order-status {
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: #ead9a6;
+  color: #522020;
+  text-transform: capitalize;
+}
+
+.status-ready {
+  background: #c9e6c1;
+}
+
+.status-completed {
+  background: #d7dce5;
+}
+
+.order-ready-message,
+.order-waiting-message,
+.edit-time-left {
+  font-weight: 700;
+}
+
+.order-ready-message {
+  color: #23652f;
+}
+
+.my-order-item,
+.my-order-totals {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(148, 45, 45, 0.12);
+}
+
+.my-order-totals {
+  flex-wrap: wrap;
+  margin-top: 6px;
+}
+
+.edit-order-button,
+.order-edit-actions button,
+.order-edit-row button {
+  margin-top: 12px;
+  padding: 8px 12px;
+  border: 1px solid #942d2d;
+  border-radius: 5px;
+  background: #942d2d;
+  color: #ebf2d5;
+  cursor: pointer;
+}
+
+.order-edit-panel {
+  margin-top: 16px;
+  padding: 14px;
+  border: 1px solid rgba(148, 45, 45, 0.25);
+  border-radius: 8px;
+}
+
+.order-edit-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 100px auto;
+  gap: 10px;
+  align-items: center;
+  margin: 8px 0;
+}
+
+.order-edit-row select,
+.order-edit-row input {
+  min-width: 0;
+  padding: 8px;
+  border: 1px solid #942d2d;
+  border-radius: 4px;
+}
+
+.order-edit-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.order-edit-actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.my-orders-message {
+  padding: 24px;
+  text-align: center;
+}
+
+@media (max-width: 600px) {
+  .my-order-card {
+    padding: 14px;
+  }
+
+  .order-edit-row {
+    grid-template-columns: minmax(0, 1fr) 76px;
+  }
+
+  .order-edit-row button {
+    grid-column: 1 / -1;
+  }
+}

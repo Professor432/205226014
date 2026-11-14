@@ -1,142 +1,117 @@
-import React, { useEffect, useState } from "react";
-import { styles, colors } from "./FeedbackCSS.js";
+import React, { useState } from "react";
 import { FaStar } from "react-icons/fa";
-import image from './flower.png';
-import { feedback as feedbackAxios } from '../AxiosCreate.jsx';
+import { feedback as feedbackAxios } from "../AxiosCreate.jsx";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
-import 'react-toastify/dist/ReactToastify.css';
-import LeaveTable from "../LeaveTable/LeaveTable.js";
-import ButtonComponent from "../Button/ButtonComponent.jsx";
-
+import "./Feedback.css";
 
 export default function Feedback() {
-
-  const [loading, setLoading] = useState(true);
-  const [starate1, setStarate1] = useState(0);
-  const [hoverValue, setHoverValue] = useState(undefined);
-  const [starate2, setStarate2] = useState(0);
-  const [hoverFoodValue, setHoverFoodValue] = useState(undefined);
+  const [serviceRating, setServiceRating] = useState(0);
+  const [serviceHover, setServiceHover] = useState(0);
+  const [foodRating, setFoodRating] = useState(0);
+  const [foodHover, setFoodHover] = useState(0);
   const [comments, setComments] = useState("");
-  const stars = Array(5).fill(0);
-
-
-
+  const [submitting, setSubmitting] = useState(false);
   const navigate = useNavigate();
 
-  useEffect(() => {
-    if (!localStorage.getItem("table_id")) {
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    setSubmitting(true);
+    let submitted = false;
+    try {
+      await feedbackAxios.post("/", {
+        starate1: serviceRating,
+        starate2: foodRating,
+        comments,
+        date_time: new Date(),
+      });
+      setComments("");
+      setServiceRating(0);
+      setFoodRating(0);
+      toast.success("Thank you for sharing your feedback.");
+      submitted = true;
+    } catch (error) {
+      console.error("Unable to submit feedback:", error);
+      toast.error(error.response?.data?.message || "Feedback could not be submitted. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
+    if (submitted) {
       navigate("/");
     }
-  }, []);
-
-  useEffect(() => {
-    // console.log(starate1)
-    // console.log(starate2)
-    // console.log(comments)
-  }, [starate1, starate2, comments]);
-
-  const handleClick = (value) => {
-    setStarate1(value);
   };
 
-  const handleFoodClick = (value) => {
-    setStarate2(value);
-  };
-
-  const handleComment = (event) => {
-    setComments(event.target.value);
-  }
-
-  async function handleSubmit() {
-    const date_time = new Date();
-    const data = {
-      starate1,
-      starate2,
-      comments,
-      date_time,
-    }
-    await feedbackAxios.post('/', data)
-      .then(() => {
-        setComments("");
-        setStarate1(0);
-        setStarate2(0);
-        toast.success("Feedback submitted.");
-        // console.log("feedback successfull!!");
-        navigate("/");
-        setLoading(false);
-      })
-      .catch((error) => {
-        console.log("ERROR MESSAGE ::", error)
-        setLoading(false);
-        toast.error("Feedback not received.");
-      });
-  }
-
+  const renderRating = (label, rating, hover, setRating, setHover) => (
+    <fieldset className="feedback-rating">
+      <legend>{label}</legend>
+      <div className="feedback-stars" role="group" aria-label={`${label} rating`}>
+        {[1, 2, 3, 4, 5].map((value) => (
+          <button
+            key={value}
+            className="feedback-star"
+            type="button"
+            aria-label={`${value} out of 5 stars`}
+            aria-pressed={rating === value}
+            onMouseEnter={() => setHover(value)}
+            onMouseLeave={() => setHover(0)}
+            onFocus={() => setHover(value)}
+            onBlur={() => setHover(0)}
+            onClick={() => setRating(value)}
+          >
+            <FaStar
+              aria-hidden="true"
+              color={(hover || rating) >= value ? "#942d2d" : "#c5c5b8"}
+            />
+          </button>
+        ))}
+      </div>
+    </fieldset>
+  );
 
   return (
-    <>
-      <LeaveTable />
-      <div style={styles.container}>
-        <h2 style={styles.title}>Feedback</h2>
-        <div style={styles.ratingSectionsContainer}>
-          <div style={styles.ratingSection}>
-            <p>Rate Our services:</p>
-            <div style={styles.stars}>
-              {stars.map((_, index) => {
-                return (
-                  <FaStar
-                    key={index}
-                    size={24}
-                    onClick={() => handleClick(index + 1)}
-                    color={(hoverValue || starate1) > index ? colors.orange : colors.grey}
-                    style={{
-                      marginRight: 10,
-                      cursor: "pointer"
-                    }}
-                  />
-                );
-              })}
-            </div>
+    <main className="feedback-page">
+      <section className="feedback-card">
+        <p className="feedback-eyebrow">Thank you for dining with us</p>
+        <h1>How was your experience?</h1>
+        <p className="feedback-intro">
+          Your table is released. A few quick notes help us make your next visit even better.
+        </p>
+        <form className="feedback-form" onSubmit={handleSubmit}>
+          <div className="feedback-ratings">
+            {renderRating(
+              "Our service",
+              serviceRating,
+              serviceHover,
+              setServiceRating,
+              setServiceHover
+            )}
+            {renderRating(
+              "Our food",
+              foodRating,
+              foodHover,
+              setFoodRating,
+              setFoodHover
+            )}
           </div>
-          <div style={styles.ratingSection}>
-            <p>Rate Our Food:</p>
-            <div style={styles.stars}>
-              {stars.map((_, index) => {
-                return (
-                  <FaStar
-                    key={index}
-                    size={24}
-                    onClick={() => handleFoodClick(index + 1)}
-                    color={(hoverFoodValue || starate2) > index ? colors.orange : colors.grey}
-                    style={{
-                      marginRight: 10,
-                      cursor: "pointer"
-                    }}
-                  />
-                );
-              })}
-            </div>
+          <label className="feedback-comment-label" htmlFor="feedback-comments">
+            Anything else you would like us to know?
+          </label>
+          <textarea
+            id="feedback-comments"
+            value={comments}
+            placeholder="Share your thoughts with us..."
+            onChange={(event) => setComments(event.target.value)}
+          />
+          <div className="feedback-actions">
+            <button type="submit" disabled={submitting}>
+              {submitting ? "Submitting..." : "Submit feedback"}
+            </button>
+            <button type="button" className="feedback-back" onClick={() => navigate("/")}>
+              Back to home
+            </button>
           </div>
-        </div>
-        <p> </p>
-        <textarea
-          required value={comments}
-          placeholder="Share your experience with us!"
-          style={styles.textarea} onChange={handleComment}
-        > </textarea>
-        <p> </p>
-        <ButtonComponent color={"primary"} message={"Submit"} func={handleSubmit} />
-        <ButtonComponent color={"secondary"} message={"Back"} func={() => navigate('/')} />
-        <div style={styles.imageContainer}>
-          <img src={image} alt="Flower_Image" style={styles.leftImage} />
-        </div>
-      </div>
-    </>
+        </form>
+      </section>
+    </main>
   );
 }
-
-
-
-// export default Feedback;
-

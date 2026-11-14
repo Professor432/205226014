@@ -15,19 +15,22 @@ analysisRouter.get("/", authenticateAdmin, async (req, res) => {
             pool.query(
                 `SELECT day, SUM(order_count)::int AS order_count, SUM(profit)::numeric AS profit
                  FROM (
-                     SELECT EXTRACT(DAY FROM date_time)::int AS day,
-                            COUNT(DISTINCT table_id)::numeric AS order_count,
-                            COALESCE(SUM(total_profit), 0)::numeric AS profit
-                     FROM cart_items
-                     WHERE ($1::int IS NULL OR EXTRACT(MONTH FROM date_time)::int = $1)
-                     GROUP BY EXTRACT(DAY FROM date_time)::int
-                     UNION ALL
-                     SELECT EXTRACT(DAY FROM date_time)::int AS day,
+                     SELECT EXTRACT(DAY FROM created_at)::int AS day,
                             COUNT(*)::numeric AS order_count,
-                            COALESCE(SUM(total_bill_profit), 0)::numeric AS profit
-                     FROM payment
-                     WHERE ($1::int IS NULL OR EXTRACT(MONTH FROM date_time)::int = $1)
-                     GROUP BY EXTRACT(DAY FROM date_time)::int
+                            COALESCE(SUM(total_profit), 0)::numeric AS profit
+                     FROM food_orders
+                     WHERE ($1::int IS NULL OR EXTRACT(MONTH FROM created_at)::int = $1)
+                     GROUP BY EXTRACT(DAY FROM created_at)::int
+                     UNION ALL
+                     SELECT EXTRACT(DAY FROM p.date_time)::int AS day,
+                            COUNT(*)::numeric AS order_count,
+                            COALESCE(SUM(p.total_bill_profit), 0)::numeric AS profit
+                     FROM payment p
+                     WHERE ($1::int IS NULL OR EXTRACT(MONTH FROM p.date_time)::int = $1)
+                       AND NOT EXISTS (
+                           SELECT 1 FROM food_orders o WHERE o.payment_id = p.order_id
+                       )
+                     GROUP BY EXTRACT(DAY FROM p.date_time)::int
                  ) AS sales
                  GROUP BY day
                  ORDER BY day`,

@@ -23,13 +23,16 @@ export default function Product(props) {
     };
     const validateInput = () => {
         const errors = [];
+        const priceValue = Number(price);
+        const profitValue = Number(profit);
+        const hasTwoDecimals = (value) => Number.isFinite(value) && Math.abs(value * 100 - Math.round(value * 100)) < 0.00001;
 
-        if (price <= 0) {
-            errors.push('Price must greater or equal to zero');
+        if (!hasTwoDecimals(priceValue) || priceValue <= 0) {
+            errors.push('Price must be greater than zero and have at most two decimal places');
         }
 
-        if (profit < 0 || profit > price) {
-            errors.push('Profit must be between 0 and Price');
+        if (!hasTwoDecimals(profitValue) || profitValue < 0 || profitValue > priceValue) {
+            errors.push('Profit must have at most two decimal places and be between 0 and Price');
         }
 
         return errors;
@@ -169,11 +172,11 @@ export default function Product(props) {
                             </div>
                             <div className="row-i">
                                 <label htmlFor="content" >Price :</label>
-                                <input type="number" className="in-i" name="price" required value={price} onChange={(e) => setPrice(e.target.value)} />
+                                <input type="number" className="in-i" name="price" min="0.01" step="0.01" required value={price} onChange={(e) => setPrice(e.target.value)} />
                             </div>
                             <div className="row-i">
                                 <label htmlFor="content" >Profit :</label>
-                                <input type="number" className="in-i" name="profit" required value={profit} onChange={(e) => setProfit(e.target.value)} />
+                                <input type="number" className="in-i" name="profit" min="0" step="0.01" required value={profit} onChange={(e) => setProfit(e.target.value)} />
                             </div>
                             <div className='bu-fo-i'>
                                 <ButtonComponent type="submit" color={"primary"} message={"Edit"} />

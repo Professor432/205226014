@@ -70,6 +70,32 @@ tableRouter.post("/:id/release", authenticateUser, async (req, res) => {
     try {
         client = await pool.connect();
         await client.query("BEGIN");
+        const ownedTable = await client.query(
+            'SELECT table_id FROM "table" WHERE table_id = $1 AND booked_by = $2 FOR UPDATE',
+            [req.params.id, req.user.user_email]
+        );
+        if (ownedTable.rowCount === 0) {
+            await client.query("ROLLBACK");
+            return res.status(403).json({ message: "This table is not booked under your account." });
+        }
+        const unpaidOrders = await client.query(
+            `SELECT 1 FROM food_orders
+             WHERE user_email = $1 AND table_id = $2 AND payment_id IS NULL
+             LIMIT 1`,
+            [req.user.user_email, req.params.id]
+        );
+        if (unpaidOrders.rowCount > 0) {
+            await client.query("ROLLBACK");
+            return res.status(409).json({ message: "Please checkout your unpaid orders before leaving the table." });
+        }
+        const draftItems = await client.query(
+            "SELECT 1 FROM cart_items WHERE table_id = $1 LIMIT 1",
+            [req.params.id]
+        );
+        if (draftItems.rowCount > 0) {
+            await client.query("ROLLBACK");
+            return res.status(409).json({ message: "Place your cart items as an order or remove them before leaving the table." });
+        }
         const result = await client.query(
             `UPDATE "table"
              SET availability_status = $1, booked_by = NULL
@@ -216,8 +242,8 @@ tableRouter.put("/:id", authenticateAdmin, async (req, res) => {
             `UPDATE "table"
              SET table_id = $1,
                  capacity = $2,
-                 availability_status = $3,
-                 booked_by = CASE WHEN $3 = 'Available' THEN NULL ELSE booked_by END
+                 availability_status = $3::varchar,
+                 booked_by = CASE WHEN $3::varchar = 'Available' THEN NULL ELSE booked_by END
              WHERE table_id = $4
              RETURNING table_id, capacity, availability_status`,
             [tableId, capacity, availabilityStatus, originalTableId]

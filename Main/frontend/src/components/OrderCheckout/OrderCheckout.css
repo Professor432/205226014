@@ -1,0 +1,86 @@
+.order-checkout {
+  margin: 24px auto;
+  padding: 20px;
+  max-width: 640px;
+  border-radius: 10px;
+  background: #942d2d;
+  color: #ebf2d5;
+  box-shadow: 0 6px 18px rgba(67, 29, 29, 0.15);
+}
+
+.order-checkout h2 {
+  margin-top: 0;
+}
+
+.order-checkout-line {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(235, 242, 213, 0.2);
+}
+
+.order-checkout-total {
+  font-size: 1.15rem;
+  font-weight: 700;
+}
+
+.order-checkout button {
+  width: 100%;
+  margin-top: 16px;
+  padding: 12px;
+  border: 1px solid #ebf2d5;
+  border-radius: 6px;
+  background: #ebf2d5;
+  color: #942d2d;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+}
+
+.order-checkout button:hover,
+.order-checkout button:focus-visible {
+  background: transparent;
+  color: #ebf2d5;
+}
+
+.order-checkout button:disabled {
+  cursor: wait;
+  opacity: 0.7;
+}
+
+.table-session-actions {
+  margin-top: 20px;
+}
+
+.table-session-actions > p {
+  margin-bottom: 4px;
+}
+
+.leave-table-dialog-button {
+  padding: 10px 16px;
+  border: 1px solid #942d2d;
+  border-radius: 6px;
+  background: #942d2d;
+  color: #ebf2d5;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+}
+
+.leave-table-dialog-button:hover,
+.leave-table-dialog-button:focus-visible {
+  background: #7d2424;
+}
+
+.leave-table-dialog-button:disabled {
+  cursor: wait;
+  opacity: 0.7;
+}
+
+.order-payment-retry {
+  margin-top: 16px;
+  padding: 12px;
+  border: 1px solid rgba(235, 242, 213, 0.55);
+  border-radius: 6px;
+}

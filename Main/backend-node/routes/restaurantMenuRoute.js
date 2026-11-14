@@ -6,16 +6,42 @@ require('dotenv').config();
 
 const restaurantMenuRouter = express.Router();
 
+const parseCurrency = (value) => {
+    if ((typeof value !== "string" && typeof value !== "number") || String(value).trim() === "") {
+        return null;
+    }
+    const amount = Number(value);
+    const cents = Math.round(amount * 100);
+    if (
+        !Number.isFinite(amount) ||
+        amount < 0 ||
+        amount > 9999999999.99 ||
+        !Number.isSafeInteger(cents) ||
+        Math.abs(amount * 100 - cents) > 0.00001
+    ) {
+        return null;
+    }
+    return cents / 100;
+};
 
 restaurantMenuRouter.post("/", authenticateToken, async (req, res) => {
-    // console.log(req.body)
     try {
-        if (!req.body.categoryName || !req.body.menu_name || !req.body.price || !req.body.profit || !req.body.img) {
-            return res.status(400).json({ message: "All fields are mandatory !!" })
+        const price = parseCurrency(req.body.price);
+        const profit = parseCurrency(req.body.profit);
+        if (
+            !req.body.categoryName ||
+            !req.body.menu_name ||
+            !req.body.img ||
+            price === null ||
+            price === 0 ||
+            profit === null ||
+            profit > price
+        ) {
+            return res.status(400).json({ message: "Enter a valid price and profit with at most two decimal places; profit cannot exceed price." });
         }
         const id = uuidv4();
         const newMenuItem = await pool.query("INSERT INTO \"restaurantMenu\"(menu_id,\"categoryName\",\"menu_name\",description,price,profit,img) VALUES($1,$2,$3,$4,$5,$6,$7)",
-            [id, req.body.categoryName, req.body.menu_name, req.body.description, parseInt(req.body.price), parseInt(req.body.profit), req.body.img]);
+            [id, req.body.categoryName, req.body.menu_name, req.body.description, price, profit, req.body.img]);
         res.status(201).json({
             message: "MenuItem created successfully !!",
             // data: newMenuItem
@@ -127,12 +153,21 @@ restaurantMenuRouter.get("/:id", async (req, res) => {
 
 restaurantMenuRouter.put("/:id", authenticateToken, async (req, res) => {
     try {
-        // validating the input
-        if (!req.body.categoryName || !req.body.menu_name || !req.body.price || !req.body.profit || !req.body.img) {
-            return res.status(400).json({ message: "All fields are mandatory !!" })
+        const price = parseCurrency(req.body.price);
+        const profit = parseCurrency(req.body.profit);
+        if (
+            !req.body.categoryName ||
+            !req.body.menu_name ||
+            !req.body.img ||
+            price === null ||
+            price === 0 ||
+            profit === null ||
+            profit > price
+        ) {
+            return res.status(400).json({ message: "Enter a valid price and profit with at most two decimal places; profit cannot exceed price." });
         }
         const { id } = req.params
-        const updateMenuItem = await pool.query("UPDATE \"restaurantMenu\" SET \"categoryName\" = $1, menu_name = $2, description = $3, price = $4, profit = $5, img = $7 WHERE menu_id = $6;", [req.body.categoryName, req.body.menu_name, req.body.description, req.body.price, req.body.profit, id, req.body.img]);
+        const updateMenuItem = await pool.query("UPDATE \"restaurantMenu\" SET \"categoryName\" = $1, menu_name = $2, description = $3, price = $4, profit = $5, img = $7 WHERE menu_id = $6;", [req.body.categoryName, req.body.menu_name, req.body.description, price, profit, id, req.body.img]);
 
         if (updateMenuItem.rowCount == 0) {
             return res.status(404).json({ message: "MenuItem not found !!" })

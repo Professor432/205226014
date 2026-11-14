@@ -35,8 +35,8 @@ export const CartItem = (props) => {
         await cartAxios.get(`/${localStorage.getItem("table_id")}`)
           .then((response) => {
             setLoading(false);
-            props.setTotalBillAmt([response.data.data][0].total_bill_amount);
-            props.setTotalBillProfit([response.data.data][0].total_bill_profit);
+            props.setTotalBillAmt(Number(response.data.data.total_bill_amount) || 0);
+            props.setTotalBillProfit(Number(response.data.data.total_bill_profit) || 0);
           })
           .catch((error) => {
             console.log("ERROR MESSAGE ::", error);

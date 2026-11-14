@@ -51,6 +51,7 @@ export default function Header() {
         ]
       : [
           { label: "Menu", path: "/menu" },
+          ...(isUser ? [{ label: "My Orders", path: "/myorders" }] : []),
           ...(localStorage.getItem("table_id") ? [{ label: "Cart", path: "/cart" }] : []),
           { label: "Book a Table", path: "/tablebooking" },
           { label: "Feedbacks", path: "/adminfeedback" },
@@ -65,9 +66,12 @@ export default function Header() {
     borderRadius: 1,
     color: location.pathname === path ? "#EBF2D5" : textColor,
     backgroundColor: location.pathname === path ? textColor : "transparent",
+    backgroundImage: "linear-gradient(#b64b4b, #b64b4b)",
+    backgroundRepeat: "no-repeat",
+    backgroundSize: "0% 100%",
     textDecoration: "none",
-    transition: "background-color 160ms ease, color 160ms ease",
-    "&:hover": { backgroundColor: textColor, color: "#EBF2D5" },
+    transition: "background-size 240ms ease, color 160ms ease",
+    "&:hover": { backgroundSize: "100% 100%", color: "#EBF2D5" },
   });
 
   const handleDrawerNavigate = (path) => {
@@ -152,6 +156,25 @@ export default function Header() {
               selected={location.pathname === path}
               onClick={() => handleDrawerNavigate(path)}
               aria-current={location.pathname === path ? "page" : undefined}
+              sx={{
+                backgroundImage: "linear-gradient(#b64b4b, #b64b4b)",
+                backgroundRepeat: "no-repeat",
+                backgroundPosition: "left center",
+                backgroundSize: "0% 100%",
+                transition: "background-size 240ms ease",
+                "&:hover": {
+                  backgroundColor: "transparent",
+                  backgroundSize: "100% 100%",
+                },
+                "&.Mui-selected": {
+                  backgroundColor: "transparent",
+                  backgroundSize: "100% 100%",
+                },
+                "&.Mui-selected:hover": {
+                  backgroundColor: "transparent",
+                  backgroundSize: "100% 100%",
+                },
+              }}
             >
               <ListItemText primary={label} />
             </ListItemButton>

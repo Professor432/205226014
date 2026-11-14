@@ -5,9 +5,28 @@
     color: #942D2D;
 }
 
-.admin-orders > h1 {
+.admin-orders-header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 12px;
     margin-bottom: 24px;
+}
+
+.admin-orders-header h1 {
+    width: 100%;
+    margin: 0;
     text-align: center;
+}
+
+.admin-orders-header select {
+    min-width: 180px;
+    padding: 8px 10px;
+    border: 1px solid #942d2d;
+    border-radius: 6px;
+    background: #fffdf5;
+    color: #942d2d;
 }
 
 .orders {
@@ -34,6 +53,26 @@
     margin: 0 0 12px;
 }
 
+.order-heading p {
+    margin: 4px 0;
+}
+
+.admin-order-status {
+    padding: 5px 12px;
+    border-radius: 999px;
+    background: #ead9a6;
+    color: #522020;
+    text-transform: capitalize;
+}
+
+.admin-order-status.status-ready {
+    background: #c9e6c1;
+}
+
+.admin-order-status.status-completed {
+    background: #d7dce5;
+}
+
 .order-row {
     display: grid;
     grid-template-columns: minmax(160px, 2fr) repeat(3, minmax(90px, 1fr));
@@ -55,6 +94,31 @@
     text-align: right;
     font-size: 1.2rem;
     font-weight: 700;
+}
+
+.admin-order-summary {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 16px;
+}
+
+.admin-order-summary button,
+.orders-message button {
+    padding: 8px 14px;
+    border: 1px solid #ebf2d5;
+    border-radius: 5px;
+    background: #ebf2d5;
+    color: #942d2d;
+    cursor: pointer;
+    font: inherit;
+}
+
+.admin-order-summary button:disabled {
+    cursor: wait;
+    opacity: 0.7;
 }
 
 .orders-message {

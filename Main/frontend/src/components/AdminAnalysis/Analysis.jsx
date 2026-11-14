@@ -140,7 +140,7 @@ export default function Analysis() {
       <header className="sales-analysis-header">
         <div>
           <h1>Live Restaurant Analysis</h1>
-          <p>Sales combine saved payments and current cart activity; ratings are based on saved customer feedback.</p>
+          <p>Sales use persistent placed-order history; ratings are based on saved customer feedback.</p>
         </div>
         <label htmlFor="monthDropdown">
           Month

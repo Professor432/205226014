@@ -20,6 +20,7 @@ import AdminTable from './components/AdminTable/AdminTable'
 import Reviewlist from "./components/Reviews/Reviewlist";
 import Analysis from './components/AdminAnalysis/Analysis';
 import Orders from './components/AdminOrders/Orders';
+import MyOrders from './components/MyOrders/MyOrders';
 import UserSignIn from './components/Login/MainContentSignIn';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -66,6 +67,7 @@ function App() {
             <Routes>
               <Route path='/menu' element={<><Header/> <RestaurantMenu/> <Footer/></>} />
               <Route path='/cart' element={<RequireUser><Header/> <Cart/> <Footer/></RequireUser>} />
+              <Route path='/myorders' element={<RequireUser><Header/> <MyOrders/> <Footer/></RequireUser>} />
               <Route path='/tablebooking' element={<RequireUser>{localStorage.getItem("table_id") ? <><Header/> <BookedTable/> <Footer/></> : <><Header/> <EnterMembers/> <Footer/></>}</RequireUser>} />
               <Route path='/' element={ <><Header/> <Home userName="User" /> <Footer/></>} />
               <Route path='/aboutus' element={<><Header/> <About/> <Footer/></>} />

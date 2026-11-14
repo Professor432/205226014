@@ -7,12 +7,39 @@ const requireTableOwnership = require("../middlewares/tableOwnership.js");
 
 const cartItemRouter = express.Router();
 
+const isValidMoney = (value, allowZero = true) => {
+    if ((typeof value !== "string" && typeof value !== "number") || String(value).trim() === "") {
+        return false;
+    }
+    const amount = Number(value);
+    const cents = Math.round(amount * 100);
+    return Number.isFinite(amount) &&
+        (allowZero ? amount >= 0 : amount > 0) &&
+        Number.isSafeInteger(cents) &&
+        Math.abs(amount * 100 - cents) <= 0.00001;
+};
+
+const isValidCartItem = (item) => (
+    Number.isInteger(Number(item.table_id)) &&
+    Number(item.table_id) > 0 &&
+    typeof item.menu_name === "string" &&
+    item.menu_name.trim() !== "" &&
+    Number.isInteger(Number(item.quantity)) &&
+    Number(item.quantity) > 0 &&
+    Number(item.quantity) <= 99 &&
+    isValidMoney(item.item_price, false) &&
+    isValidMoney(item.total_price, false) &&
+    isValidMoney(item.item_profit) &&
+    isValidMoney(item.total_profit) &&
+    typeof item.date_time === "string" &&
+    !Number.isNaN(Date.parse(item.date_time))
+);
 
 cartItemRouter.post("/", authenticateUser, requireTableOwnership, async (req, res) => {
     let client;
     try {
-        if (!req.body.table_id || !req.body.menu_name || !req.body.quantity || !req.body.item_price || !req.body.total_price || !req.body.item_profit || !req.body.total_profit || !req.body.date_time) {
-            return res.status(400).json({ message: "All fields are mandatory !!" })
+        if (!isValidCartItem(req.body)) {
+            return res.status(400).json({ message: "Provide valid item details and currency amounts with at most two decimal places." });
         }
         client = await pool.connect();
         await client.query("BEGIN");
@@ -30,8 +57,8 @@ cartItemRouter.post("/", authenticateUser, requireTableOwnership, async (req, re
             [req.body.table_id, req.body.menu_name, req.body.quantity, req.body.item_price, req.body.total_price, req.body.item_profit, req.body.total_profit, req.body.date_time]
         );
         const totals = await client.query(
-            `SELECT COALESCE(SUM(total_price), 0)::int AS total_bill_amount,
-                    COALESCE(SUM(total_profit), 0)::int AS total_bill_profit
+            `SELECT COALESCE(SUM(total_price), 0)::numeric(12, 2) AS total_bill_amount,
+                    COALESCE(SUM(total_profit), 0)::numeric(12, 2) AS total_bill_profit
              FROM cart_items WHERE table_id = $1`,
             [req.body.table_id]
         );
@@ -132,8 +159,8 @@ cartItemRouter.get("/:table_id/:menu_name", authenticateUser, requireTableOwners
 
 cartItemRouter.put("/", authenticateUser, requireTableOwnership, async (req, res) => {
     try {
-        if (!req.body.table_id || !req.body.menu_name || !req.body.quantity || !req.body.item_price || !req.body.total_price || !req.body.item_profit || !req.body.total_profit || !req.body.date_time) {
-            return res.status(400).json({ message: "All fields are mandatory !!" })
+        if (!isValidCartItem(req.body)) {
+            return res.status(400).json({ message: "Provide valid item details and currency amounts with at most two decimal places." });
         }
         const updateCartItem = await pool.query("UPDATE cart_items SET quantity = $1, total_price = $2, total_profit = $3, date_time = $4 WHERE table_id = $5 AND menu_name = $6;", 
                         [req.body.quantity, req.body.total_price, req.body.total_profit, req.body.date_time, req.body.table_id, req.body.menu_name]);
@@ -144,8 +171,8 @@ cartItemRouter.put("/", authenticateUser, requireTableOwnership, async (req, res
         let total_bill_amount = await pool.query("SELECT SUM(total_price) AS total_bill_amount FROM cart_items WHERE table_id = $1",[req.body.table_id]);
         let total_bill_profit = await pool.query("SELECT SUM(total_profit) AS total_bill_profit FROM cart_items WHERE table_id = $1",[req.body.table_id]);
         // console.log(total_bill_amount.rows[0].total_bill_amount, total_bill_profit.rows[0].total_bill_profit)
-        total_bill_amount = parseInt(total_bill_amount.rows[0].total_bill_amount);
-        total_bill_profit = parseInt(total_bill_profit.rows[0].total_bill_profit);
+        total_bill_amount = Number(total_bill_amount.rows[0].total_bill_amount) || 0;
+        total_bill_profit = Number(total_bill_profit.rows[0].total_bill_profit) || 0;
         await pool.query("UPDATE cart SET table_id = $1, total_bill_amount = $2, total_bill_profit = $3, date_time = $4 WHERE table_id = $5 ;",
             [req.body.table_id, total_bill_amount, total_bill_profit, req.body.date_time, req.body.table_id]);
         // console.log(typeof total_bill_amount, typeof total_bill_profit)
@@ -171,8 +198,8 @@ cartItemRouter.delete("/cart_table/:table_id", authenticateUser, requireTableOwn
         let total_bill_amount = await pool.query("SELECT SUM(total_price) AS total_bill_amount FROM cart_items WHERE table_id = $1",[table_id]);
         let total_bill_profit = await pool.query("SELECT SUM(total_profit) AS total_bill_profit FROM cart_items WHERE table_id = $1",[table_id]);
         // console.log(total_bill_amount.rows[0].total_bill_amount, total_bill_profit.rows[0].total_bill_profit)
-        total_bill_amount = parseInt(total_bill_amount.rows[0].total_bill_amount);
-        total_bill_profit = parseInt(total_bill_profit.rows[0].total_bill_profit);
+        total_bill_amount = Number(total_bill_amount.rows[0].total_bill_amount) || 0;
+        total_bill_profit = Number(total_bill_profit.rows[0].total_bill_profit) || 0;
         await pool.query("DELETE FROM cart WHERE table_id = $1 ;",[table_id]);
         return res.status(200).json({
             message: "Deleted successfully !!",
@@ -197,8 +224,8 @@ cartItemRouter.delete("/:table_id/:menu_name", authenticateUser, requireTableOwn
         let total_bill_amount = await pool.query("SELECT SUM(total_price) AS total_bill_amount FROM cart_items WHERE table_id = $1",[table_id]);
         let total_bill_profit = await pool.query("SELECT SUM(total_profit) AS total_bill_profit FROM cart_items WHERE table_id = $1",[table_id]);
         // console.log(total_bill_amount.rows[0].total_bill_amount, total_bill_profit.rows[0].total_bill_profit)
-        total_bill_amount = parseInt(total_bill_amount.rows[0].total_bill_amount) || 0;
-        total_bill_profit = parseInt(total_bill_profit.rows[0].total_bill_profit) || 0;
+        total_bill_amount = Number(total_bill_amount.rows[0].total_bill_amount) || 0;
+        total_bill_profit = Number(total_bill_profit.rows[0].total_bill_profit) || 0;
         // console.log("nik222");
         // console.log(total_bill_amount, total_bill_profit)
         if(total_bill_amount == 0) {

@@ -2,178 +2,178 @@ import React, { useEffect, useState } from "react";
 import { CartItem } from "./cart-item";
 import { useNavigate } from "react-router-dom";
 import "./Cart.scss";
-import { cartItems as cartItemsAxios } from "../AxiosCreate";
-import { cart as cartAxios } from "../AxiosCreate";
-import { RAZORPAY_KEY_ID } from '../../config';
-import Automn_logo from "../../assets/Automn_logo.png";
+import { cartItems as cartItemsAxios, cart as cartAxios, orders as ordersAxios } from "../AxiosCreate";
 import ButtonComponent from "../Button/ButtonComponent";
+import OrderCheckout from "../OrderCheckout/OrderCheckout";
+import Loader from "../Loader/Loader";
 import { isUserAuthenticated } from "../../auth";
-
+import { toast } from "react-toastify";
 
 function Cart() {
-
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(true);
+  const [placingOrder, setPlacingOrder] = useState(false);
   const [totalBillAmt, setTotalBillAmt] = useState(0);
   const [totalBillProfit, setTotalBillProfit] = useState(0);
   const [cartItems, setCartItems] = useState([]);
   const [cartItemsCnt, setCartItemsCnt] = useState(0);
-
+  const [cartError, setCartError] = useState("");
+  const [orderPlaced, setOrderPlaced] = useState(null);
+  const [checkoutRefreshKey, setCheckoutRefreshKey] = useState(0);
   const navigate = useNavigate();
 
   useEffect(() => {
-    // console.log("nik in cart useeffect1");
-    const func = async () => {
-      if (!localStorage.getItem("table_id")) {
-        navigate("/");
+    const tableId = localStorage.getItem("table_id");
+    if (!tableId) {
+      navigate("/");
+      return;
+    }
+
+    let active = true;
+    const fetchCartItems = async () => {
+      try {
+        const response = await cartItemsAxios.get(`/cart_table/${tableId}`);
+        if (active) {
+          setCartItems(response.data.data || []);
+          setCartItemsCnt(response.data.count || 0);
+          setCartError("");
+        }
+      } catch (requestError) {
+        console.error("Unable to load cart items:", requestError);
+        if (active) {
+          setCartItems([]);
+          setCartError(requestError.response?.data?.message || "Unable to load your cart.");
+        }
+      } finally {
+        if (active) {
+          setLoading(false);
+        }
       }
-      await cartItemsAxios.get(`cart_table/${localStorage.getItem("table_id")}`)
-        .then((response) => {
-          setLoading(false)
-          // console.log([response.data.data][0])
-          setCartItemsCnt([response.data.count][0])
-          setCartItems([response.data.data][0])
-        })
-        .catch((error) => {
-          console.log("ERROR MESSAGE ::", error)
-          setLoading(false);
-        });
-    }
-    func();
-  }, [cartItemsCnt]);
+    };
+    fetchCartItems();
+    return () => {
+      active = false;
+    };
+  }, [cartItemsCnt, navigate]);
 
   useEffect(() => {
-    // console.log("nik in cart useeffect2");
-    const func = async () => {
-      await cartAxios.get(`/${localStorage.getItem("table_id")}`)
-        .then((response) => {
-          setLoading(false)
-          // console.log([response.data.data][0])
-          setTotalBillAmt([response.data.data][0].total_bill_amount);
-          setTotalBillProfit([response.data.data][0].total_bill_profit);
-        })
-        .catch((error) => {
-          console.log("ERROR MESSAGE ::", error)
-          setLoading(false);
-        });
+    const tableId = localStorage.getItem("table_id");
+    if (!tableId) {
+      return;
     }
-    func();
-  }, [totalBillAmt, totalBillProfit, cartItemsCnt]);
 
-  useEffect(() => {
-    // console.log("nik in empty useeffect");
-  }, []);
+    let active = true;
+    const fetchTotals = async () => {
+      try {
+        const response = await cartAxios.get(`/${tableId}`);
+        if (active) {
+          setTotalBillAmt(Number(response.data.data.total_bill_amount) || 0);
+          setTotalBillProfit(Number(response.data.data.total_bill_profit) || 0);
+        }
+      } catch (requestError) {
+        if (requestError.response?.status !== 404) {
+          console.error("Unable to load cart totals:", requestError);
+        }
+        if (active) {
+          setTotalBillAmt(0);
+          setTotalBillProfit(0);
+        }
+      }
+    };
+    fetchTotals();
+    return () => {
+      active = false;
+    };
+  }, [cartItemsCnt, totalBillAmt, totalBillProfit]);
 
-  const handleCheckout = (e) => {
-    e.preventDefault();
+  const placeOrder = async () => {
     if (!isUserAuthenticated()) {
       navigate("/signin");
       return;
     }
-    if (totalBillAmt === "") {
-      alert("Please enter amount");
+    if (!cartItems.length) {
+      toast.info("Add at least one menu item before placing your order.");
+      return;
     }
-    else {
-      var options = {
-        key: RAZORPAY_KEY_ID,
-        amount: totalBillAmt * 100 * 1.05,
-        currency: "INR",
-        name: "Automn Pay",
-        description: "Pay Automn",
-        image: Automn_logo,
-        handler: function (response) {
-          console.log("Automn in payment....success!!")
-          console.log(response)
-          console.log("razorpay_payment_ID:: ", response.razorpay_payment_id)
-          alert("Payment Successful!!");
-          navigate("/feedback");
-        },
-        timeout: 120,   // pop up closes after 2min
-        prefill: {
-          name: localStorage.getItem("user_name") || "",
-          email: localStorage.getItem("user_email") || "",
-          contact: ""
-        },
-        notes: {
-          address: "",
-        },
-        theme: {
-          color: "#942D2D",
-        }
-      };
-      var pay = new window.Razorpay(options);
-      pay.open();
-    }
-  }
 
+    setPlacingOrder(true);
+    try {
+      const response = await ordersAxios.post("/", {
+        table_id: Number(localStorage.getItem("table_id")),
+      });
+      setOrderPlaced(response.data.data);
+      setCartItems([]);
+      setCartItemsCnt(0);
+      setTotalBillAmt(0);
+      setTotalBillProfit(0);
+      setCheckoutRefreshKey((key) => key + 1);
+      toast.success("Order placed successfully.");
+    } catch (requestError) {
+      toast.error(requestError.response?.data?.message || "Unable to place your order.");
+    } finally {
+      setPlacingOrder(false);
+    }
+  };
+
+  const subtotal = Number(totalBillAmt) || 0;
+  const tax = Number((subtotal * 0.05).toFixed(2));
 
   return (
-    <div style={{
-      backgroundColor: '#EBF2D5',
-      '@media screen and (max-width: 700px) and (min-height: 400px)': {
-        minHeight: '400px'
-        // Add any additional styles for the media query here
-      }
-    }}>
+    <main className="customer-cart-page">
       <div className="foodcart">
         <h1>Food Cart</h1>
       </div>
-      {
-        (cartItems.length > 0) ? (
-          <div className="cart1">
-            <div className="flex1">
-              <div className="cart" style={{ marginTop: '15px' }}>
-                {cartItems.map((product) => {
-                  return <CartItem key={product.menu_name} item={product}
-                    cartItemsCnt={cartItemsCnt}
-                    setCartItemsCnt={setCartItemsCnt}
-                    totalBillAmt={totalBillAmt}
-                    setTotalBillAmt={setTotalBillAmt}
-                    totalBillProfit={totalBillProfit}
-                    setTotalBillProfit={setTotalBillProfit} />;
-                })}
-              </div>
-            </div>
-            <div className="flex2">
-              <div className="checkout">
-                <div className='totals'>
-                  <div className="flexrow">
-                    <div style={{ marginLeft: '10%' }}>Subtotal:</div>
-                    <div style={{ marginLeft: '40%' }}>  ₹{totalBillAmt} </div>
-                  </div>
-                  <div className="flexrow">
-                    <div style={{ marginLeft: '10%' }}>Tax(5%):</div>
-                    <div style={{ marginLeft: '40%' }}>  ₹{totalBillAmt * 0.05} </div>
-                  </div>
-                  <div className="flexrow">
-                    <div style={{ marginLeft: '10%', marginBottom: '5%' }}>Total:</div>
-                    <div style={{ marginLeft: '45%' }}>  ₹{totalBillAmt * 1.05} </div>
-                  </div>
-                </div>
-                <div className='checkingout'>
-                  <button onClick={() => navigate("/menu")}> Menu </button>
-                  <button style={{ marginLeft: '30px' }}
-                    onClick={handleCheckout}
-                  >
-                    {" "}
-                    Checkout{" "}
-                  </button>
-                </div>
-              </div>
+      {orderPlaced && (
+        <section className="order-placed-message" role="status">
+          <h2>Thank you for your order!</h2>
+          <p>Please wait until your order is ready. Order #{orderPlaced.order_id}</p>
+          <ButtonComponent color="button4" message="View My Orders" func={() => navigate("/myorders")} />
+        </section>
+      )}
+      {cartError && <p className="orders-message" role="alert">{cartError}</p>}
+      {loading ? (
+        <Loader />
+      ) : cartItems.length > 0 ? (
+        <section className="cart1">
+          <div className="flex1">
+            <div className="cart">
+              {cartItems.map((product) => (
+                <CartItem
+                  key={product.menu_name}
+                  item={product}
+                  cartItemsCnt={cartItemsCnt}
+                  setCartItemsCnt={setCartItemsCnt}
+                  totalBillAmt={totalBillAmt}
+                  setTotalBillAmt={setTotalBillAmt}
+                  totalBillProfit={totalBillProfit}
+                  setTotalBillProfit={setTotalBillProfit}
+                />
+              ))}
             </div>
           </div>
-        ) : (
-          <div>
-            <h1 className="emptycart">
-              Your cart is like a table waiting to be filled with delicious food.
-            </h1>
-            <div className="bottom-button">
-              <ButtonComponent color={"primary"} message={"View Menu"} func={() => navigate('/menu')} />
-              <ButtonComponent color={"secondary"} message={"Vacant Table"} func={() => navigate('/feedback')} />
+          <aside className="checkout">
+            <div className="totals">
+              <h2>Draft order estimate</h2>
+              <div className="flexrow"><span>Subtotal:</span><span>₹{subtotal.toLocaleString("en-IN")}</span></div>
+              <div className="flexrow"><span>Tax (5%):</span><span>₹{tax.toFixed(2)}</span></div>
+              <div className="flexrow"><strong>Estimated total:</strong><strong>₹{(subtotal + tax).toFixed(2)}</strong></div>
             </div>
-          </div>
-        )}
-    </div>
+            <div className="checkingout">
+              <button type="button" onClick={() => navigate("/menu")}>Menu</button>
+              <button type="button" onClick={placeOrder} disabled={placingOrder}>
+                {placingOrder ? "Placing..." : "Place Order"}
+              </button>
+            </div>
+          </aside>
+        </section>
+      ) : (
+        <section className="empty-cart-section">
+          <h2 className="emptycart">Your cart is empty. Add items from the menu to place a new order.</h2>
+          <ButtonComponent color="primary" message="View Menu" func={() => navigate("/menu")} />
+        </section>
+      )}
+      <OrderCheckout refreshKey={checkoutRefreshKey} />
+    </main>
   );
-};
+}
 
 export default Cart;

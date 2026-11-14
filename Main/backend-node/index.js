@@ -13,6 +13,7 @@ const cartRouter = require("./routes/cartRoute.js");
 const cartItemsRouter = require("./routes/cartItemsRoute.js");
 const userRouter = require("./routes/userRoute.js");
 const analysisRouter = require("./routes/analysisRoute.js");
+const ordersRouter = require("./routes/ordersRoute.js");
 // const ordersRouter = require("./routes/ordersRoute.js");
 // const paymentRouter = require("./routes/paymentRoute.js");
 
@@ -33,7 +34,7 @@ app.use("/cart",cartRouter)
 app.use("/cart_items",cartItemsRouter)
 app.use("/users",userRouter)
 app.use("/analysis",analysisRouter)
-// app.use("/orders",ordersRouter)
+app.use("/orders",ordersRouter)
 // app.use("/payment",paymentRouter)
 
 const initializeDatabase = async () => {
@@ -52,8 +53,8 @@ const initializeDatabase = async () => {
                     ON UPDATE CASCADE, 
                 menu_name VARCHAR NOT NULL UNIQUE, 
                 description TEXT, 
-                price INT NOT NULL,
-                profit INT NOT NULL, 
+                price NUMERIC(12, 2) NOT NULL,
+                profit NUMERIC(12, 2) NOT NULL,
                 img TEXT);`);
     await pool.query(`CREATE TABLE IF NOT EXISTS "${RELATION3}"(
                 table_id INT PRIMARY KEY, 
@@ -76,24 +77,31 @@ const initializeDatabase = async () => {
                     table_id INT NOT NULL REFERENCES "${RELATION3}"(table_id) ON UPDATE CASCADE,
                     menu_name VARCHAR REFERENCES "${RELATION2}"(menu_name),
                     quantity INT NOT NULL,
-                    item_price INT NOT NULL, 
-                    total_price INT NOT NULL, 
-                    item_profit INT NOT NULL,
-                    total_profit INT NOT NULL,
+                    item_price NUMERIC(12, 2) NOT NULL,
+                    total_price NUMERIC(12, 2) NOT NULL,
+                    item_profit NUMERIC(12, 2) NOT NULL,
+                    total_profit NUMERIC(12, 2) NOT NULL,
                     date_time TIMESTAMP WITH TIME ZONE NOT NULL,
                     PRIMARY KEY (table_id, menu_name) );`);
     await pool.query(`CREATE TABLE IF NOT EXISTS ${RELATION7}(
                     table_id INT NOT NULL PRIMARY KEY REFERENCES "${RELATION3}"(table_id) ON UPDATE CASCADE,
-                    total_bill_amount INT NOT NULL,
-                    total_bill_profit INT NOT NULL,
+                    total_bill_amount NUMERIC(12, 2) NOT NULL,
+                    total_bill_profit NUMERIC(12, 2) NOT NULL,
                     date_time TIMESTAMP NOT NULL );`);
     await pool.query(`CREATE TABLE IF NOT EXISTS ${RELATION8}(
                     order_id VARCHAR PRIMARY KEY,
-                    total_bill_amount INT NOT NULL,
-                    total_bill_profit INT NOT NULL,
+                    total_bill_amount NUMERIC(12, 2) NOT NULL,
+                    total_bill_profit NUMERIC(12, 2) NOT NULL,
                     payment_mode VARCHAR NOT NULL,
                     date_time TIMESTAMP NOT NULL
     );`);
+    await pool.query(`ALTER TABLE ${RELATION8} ADD COLUMN IF NOT EXISTS user_email VARCHAR REFERENCES "${RELATION10}"(user_email);`);
+    await pool.query(`ALTER TABLE ${RELATION8} ADD COLUMN IF NOT EXISTS subtotal_amount NUMERIC(12, 2);`);
+    await pool.query(`ALTER TABLE ${RELATION8} ADD COLUMN IF NOT EXISTS tax_amount NUMERIC(12, 2);`);
+    await pool.query(`ALTER TABLE ${RELATION8} ADD COLUMN IF NOT EXISTS grand_total_amount NUMERIC(12, 2);`);
+    await pool.query(`ALTER TABLE ${RELATION8} ADD COLUMN IF NOT EXISTS razorpay_payment_id VARCHAR;`);
+    await pool.query(`CREATE UNIQUE INDEX IF NOT EXISTS payment_razorpay_payment_id_unique
+                      ON ${RELATION8}(razorpay_payment_id) WHERE razorpay_payment_id IS NOT NULL;`);
     await pool.query(`CREATE TABLE IF NOT EXISTS ${RELATION9}(
                     order_id VARCHAR REFERENCES ${RELATION8}(order_id),
                     menu_name VARCHAR NOT NULL,
@@ -102,6 +110,57 @@ const initializeDatabase = async () => {
                     total_profit INT NOT NULL,
                     date_time TIMESTAMP NOT NULL,
                     PRIMARY KEY (order_id, menu_name) );`);
+    await pool.query(`CREATE TABLE IF NOT EXISTS food_orders(
+                    order_id VARCHAR PRIMARY KEY,
+                    user_email VARCHAR NOT NULL REFERENCES "${RELATION10}"(user_email),
+                    table_id INT NOT NULL,
+                    status VARCHAR NOT NULL DEFAULT 'new'
+                        CHECK (status IN ('new', 'ready', 'completed')),
+                    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+                    subtotal_amount NUMERIC(12, 2) NOT NULL,
+                    tax_amount NUMERIC(12, 2) NOT NULL,
+                    grand_total NUMERIC(12, 2) NOT NULL,
+                    total_profit NUMERIC(12, 2) NOT NULL,
+                    payment_id VARCHAR REFERENCES ${RELATION8}(order_id) ON DELETE SET NULL,
+                    paid_at TIMESTAMP WITH TIME ZONE
+    );`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS food_orders_user_created_idx
+                      ON food_orders(user_email, created_at DESC);`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS food_orders_status_created_idx
+                      ON food_orders(status, created_at DESC);`);
+    await pool.query(`CREATE TABLE IF NOT EXISTS food_order_items(
+                    order_id VARCHAR NOT NULL REFERENCES food_orders(order_id) ON DELETE CASCADE,
+                    menu_name VARCHAR NOT NULL,
+                    quantity INT NOT NULL,
+                    item_price NUMERIC(12, 2) NOT NULL,
+                    item_profit NUMERIC(12, 2) NOT NULL,
+                    total_price NUMERIC(12, 2) NOT NULL,
+                    total_profit NUMERIC(12, 2) NOT NULL,
+                    PRIMARY KEY (order_id, menu_name)
+    );`);
+    await pool.query(`ALTER TABLE "${RELATION2}"
+                      ALTER COLUMN price TYPE NUMERIC(12, 2) USING price::NUMERIC(12, 2),
+                      ALTER COLUMN profit TYPE NUMERIC(12, 2) USING profit::NUMERIC(12, 2);`);
+    await pool.query(`ALTER TABLE ${RELATION6}
+                      ALTER COLUMN item_price TYPE NUMERIC(12, 2) USING item_price::NUMERIC(12, 2),
+                      ALTER COLUMN total_price TYPE NUMERIC(12, 2) USING total_price::NUMERIC(12, 2),
+                      ALTER COLUMN item_profit TYPE NUMERIC(12, 2) USING item_profit::NUMERIC(12, 2),
+                      ALTER COLUMN total_profit TYPE NUMERIC(12, 2) USING total_profit::NUMERIC(12, 2);`);
+    await pool.query(`ALTER TABLE ${RELATION7}
+                      ALTER COLUMN total_bill_amount TYPE NUMERIC(12, 2) USING total_bill_amount::NUMERIC(12, 2),
+                      ALTER COLUMN total_bill_profit TYPE NUMERIC(12, 2) USING total_bill_profit::NUMERIC(12, 2);`);
+    await pool.query(`ALTER TABLE ${RELATION8}
+                      ALTER COLUMN total_bill_amount TYPE NUMERIC(12, 2) USING total_bill_amount::NUMERIC(12, 2),
+                      ALTER COLUMN total_bill_profit TYPE NUMERIC(12, 2) USING total_bill_profit::NUMERIC(12, 2),
+                      ALTER COLUMN subtotal_amount TYPE NUMERIC(12, 2) USING subtotal_amount::NUMERIC(12, 2);`);
+    await pool.query(`ALTER TABLE food_orders
+                      ALTER COLUMN subtotal_amount TYPE NUMERIC(12, 2) USING subtotal_amount::NUMERIC(12, 2),
+                      ALTER COLUMN total_profit TYPE NUMERIC(12, 2) USING total_profit::NUMERIC(12, 2);`);
+    await pool.query(`ALTER TABLE food_order_items
+                      ALTER COLUMN item_price TYPE NUMERIC(12, 2) USING item_price::NUMERIC(12, 2),
+                      ALTER COLUMN item_profit TYPE NUMERIC(12, 2) USING item_profit::NUMERIC(12, 2),
+                      ALTER COLUMN total_price TYPE NUMERIC(12, 2) USING total_price::NUMERIC(12, 2),
+                      ALTER COLUMN total_profit TYPE NUMERIC(12, 2) USING total_profit::NUMERIC(12, 2);`);
 };
 
 app.get('/', async (req, res) => {

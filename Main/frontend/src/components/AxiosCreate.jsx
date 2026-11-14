@@ -29,3 +29,4 @@ export const feedback = createApi("feedback");
 export const admin = createApi("admin");
 export const users = createApi("users");
 export const analysis = createApi("analysis");
+export const orders = createApi("orders");

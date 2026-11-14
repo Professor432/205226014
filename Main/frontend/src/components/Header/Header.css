@@ -25,12 +25,6 @@
     color: #EBF2D5;
 }
 
-.navigation-drawer .MuiListItemButton-root:hover,
-.navigation-drawer .MuiListItemButton-root.Mui-selected,
-.navigation-drawer .MuiListItemButton-root.Mui-selected:hover {
-    background: rgba(235, 242, 213, 0.18);
-}
-
 @media (max-width: 900px) {
     .logout {
         width: 150px;
