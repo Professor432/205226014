@@ -44,7 +44,7 @@ export default function AdminLogin() {
                     localStorage.setItem("accessToken", response.data.accessToken)
                     notifyAuthChange();
                     toast.success("Admin login successful.");
-                    navigate('/');
+                    navigate('/', { replace: true });
                 }
             })
             .catch((error) => {

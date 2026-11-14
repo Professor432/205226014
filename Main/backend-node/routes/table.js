@@ -103,9 +103,7 @@ tableRouter.get("/", async (req, res) => {
     try {
         const allTables = await pool.query(`SELECT table_id, capacity, availability_status FROM \"table\" ORDER BY table_id ASC;`);
 
-        // Set cache control headers
-        const max_age = 120; // 120 seconds
-        res.setHeader('Cache-Control', `private, max-age=${max_age}`);
+        res.setHeader('Cache-Control', 'no-store');
 
         return res.status(200).json({
             message: "All Tables received !!",
@@ -174,23 +172,68 @@ tableRouter.get("/:id", async (req, res) => {
 
 tableRouter.put("/:id", authenticateAdmin, async (req, res) => {
     try {
-        if (!req.body.table_id || !req.body.availability_status) {
-            return res.status(400).json({ message: "All fields are mandatory !!" })
+        const tableId = Number(req.body.table_id);
+        const capacity = Number(req.body.capacity);
+        const originalTableId = Number(req.params.id);
+        const { availability_status: availabilityStatus } = req.body;
+
+        if (
+            !Number.isInteger(tableId) || tableId < 1 || tableId >= 50 ||
+            !Number.isInteger(capacity) || capacity < 1 || capacity >= 20 ||
+            !Number.isInteger(originalTableId) ||
+            !["Available", "Occupied"].includes(availabilityStatus)
+        ) {
+            return res.status(400).json({ message: "Enter a valid table number, capacity, and availability status." });
         }
-        const { id } = req.params
-        const updateTable = await pool.query(
-            'UPDATE "table" SET table_id = $4, capacity = $1, availability_status = $2, booked_by = CASE WHEN $2 = $5 THEN NULL ELSE booked_by END WHERE table_id = $3;',
-            [req.body.capacity, req.body.availability_status, id, req.body.table_id, "Available"]
+        await pool.query(`DO $$
+        BEGIN
+            IF to_regclass('"cart_items"') IS NOT NULL THEN
+                IF NOT EXISTS (
+                    SELECT 1 FROM pg_constraint
+                    WHERE conrelid = '"cart_items"'::regclass
+                      AND conname = 'cart_items_table_id_fkey'
+                      AND confupdtype = 'c'
+                ) THEN
+                    ALTER TABLE "cart_items" DROP CONSTRAINT IF EXISTS cart_items_table_id_fkey;
+                    ALTER TABLE "cart_items" ADD CONSTRAINT cart_items_table_id_fkey
+                        FOREIGN KEY (table_id) REFERENCES "table"(table_id) ON UPDATE CASCADE;
+                END IF;
+            END IF;
+            IF to_regclass('cart') IS NOT NULL THEN
+                IF NOT EXISTS (
+                    SELECT 1 FROM pg_constraint
+                    WHERE conrelid = 'cart'::regclass
+                      AND conname = 'cart_table_id_fkey'
+                      AND confupdtype = 'c'
+                ) THEN
+                    ALTER TABLE "cart" DROP CONSTRAINT IF EXISTS cart_table_id_fkey;
+                    ALTER TABLE "cart" ADD CONSTRAINT cart_table_id_fkey
+                        FOREIGN KEY (table_id) REFERENCES "table"(table_id) ON UPDATE CASCADE;
+                END IF;
+            END IF;
+        END $$;`);
+        const result = await pool.query(
+            `UPDATE "table"
+             SET table_id = $1,
+                 capacity = $2,
+                 availability_status = $3,
+                 booked_by = CASE WHEN $3 = 'Available' THEN NULL ELSE booked_by END
+             WHERE table_id = $4
+             RETURNING table_id, capacity, availability_status`,
+            [tableId, capacity, availabilityStatus, originalTableId]
         );
 
-        if (updateTable.rowCount == 0) {
-            return res.status(404).json({ message: "Table not found !!" })
+        if (result.rowCount === 0) {
+            return res.status(404).json({ message: "Table not found." });
         }
-        return res.status(200).json({
-            message: "Updated successfully !!",
-            // data: updateTable
-        })
+        return res.status(200).json({ message: "Table updated successfully.", data: result.rows[0] });
     } catch (error) {
+        if (error.code === "23505") {
+            return res.status(409).json({ message: "A table with that number already exists." });
+        }
+        if (error.code === "23503") {
+            return res.status(409).json({ message: "The table number cannot be changed while it has linked orders or bookings." });
+        }
         console.log("ERROR MESSAGE ::", error.message)
         res.status(500).json({ message: "Can't update !!" })
     }

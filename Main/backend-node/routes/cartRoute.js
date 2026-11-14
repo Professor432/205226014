@@ -30,6 +30,7 @@ cartRouter.post("/", authenticateUser, requireTableOwnership, async (req, res) =
 cartRouter.get("/", authenticateAdmin, async (req, res) => {
     try {
         const allCarts = await pool.query(`SELECT*FROM cart ORDER BY table_id ASC, date_time DESC`);
+        res.setHeader("Cache-Control", "no-store");
         return res.status(200).json({
             message: "All Carts received !!",
             count: allCarts.rows.length,

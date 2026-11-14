@@ -1,44 +1,75 @@
-.container {
-    background-color: #EBF2D5;
-  }
-  
-  .itemflex {
-    display: flex;
-    flex-direction: row;
-  }
+.admin-orders {
+    min-height: 55vh;
+    padding: 28px clamp(16px, 5vw, 64px);
+    background: #EBF2D5;
+    color: #942D2D;
+}
 
-  .itemflex div {
-    width: 13rem;
+.admin-orders > h1 {
+    margin-bottom: 24px;
     text-align: center;
-  }
-  
-  .flextable {
-    margin: 2rem auto;
-  }
-  
-  h1 {
-    text-align: center;
-  }
-  
-  .orders {
-    /* display: flex; */
-    flex-wrap: wrap;
-  }
-  
-  .order {
-    padding: 1rem;
-    margin: 1rem 4rem;
+}
+
+.orders {
+    display: grid;
+    gap: 20px;
+}
+
+.order {
+    padding: 20px;
+    border-radius: 10px;
     color: #EBF2D5;
-    background-color: #942D2D;
-    display: flex;
-    flex-direction: column;
-  }
-  
-  .totalBillAmt {
-    text-align: right;
-    margin-right: 4rem;
-  }
+    background: #942D2D;
+    box-shadow: 0 6px 18px rgba(67, 29, 29, 0.15);
+}
 
-  .order:hover {
-    transform: scale(1.05);
-  }
+.order-heading {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    border-bottom: 1px solid rgba(235, 242, 213, 0.35);
+}
+
+.order-heading h2 {
+    margin: 0 0 12px;
+}
+
+.order-row {
+    display: grid;
+    grid-template-columns: minmax(160px, 2fr) repeat(3, minmax(90px, 1fr));
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid rgba(235, 242, 213, 0.16);
+}
+
+.order-row > span:not(:first-child) {
+    text-align: right;
+}
+
+.order-column-headings {
+    font-weight: 700;
+}
+
+.totalBillAmt {
+    margin: 16px 0 0;
+    text-align: right;
+    font-size: 1.2rem;
+    font-weight: 700;
+}
+
+.orders-message {
+    padding: 24px;
+    text-align: center;
+}
+
+@media (max-width: 600px) {
+    .order {
+        padding: 14px;
+    }
+
+    .order-row {
+        grid-template-columns: minmax(110px, 1.5fr) repeat(3, minmax(55px, 1fr));
+        gap: 6px;
+        font-size: 0.9rem;
+    }
+}

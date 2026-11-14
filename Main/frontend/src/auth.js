@@ -2,6 +2,10 @@ export const isUserAuthenticated = () =>
   localStorage.getItem("isUserAuth") === "true" &&
   Boolean(localStorage.getItem("accessToken"));
 
+export const isAdminAuthenticated = () =>
+  localStorage.getItem("isAdminAuth") === "true" &&
+  Boolean(localStorage.getItem("accessToken"));
+
 export const notifyAuthChange = () => {
   window.dispatchEvent(new Event("auth-change"));
 };

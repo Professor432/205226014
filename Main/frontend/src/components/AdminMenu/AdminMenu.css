@@ -46,6 +46,27 @@
     justify-content: space-between; /* Adjust alignment */
     flex-direction: row;
 }
+.admin-menu-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    width: 77%;
+    margin: -2% auto 2%;
+}
+.admin-menu-filters input,
+.admin-menu-filters select {
+    min-width: 220px;
+    padding: 9px 12px;
+    border: 1px solid #942D2D;
+    border-radius: 4px;
+    background: #fff;
+    color: #942D2D;
+    font: inherit;
+}
+.admin-menu-empty {
+    padding: 16px;
+    text-align: center;
+}
 .mrow-a{
     display: flex;
     flex-direction: column;
@@ -135,6 +156,14 @@
     /* Adjust styles for screens with a maximum width of 768px */
     .addi-a {
         flex-direction: column;
+    }
+    .admin-menu-filters {
+        width: 90%;
+        margin: 0 auto 18px;
+    }
+    .admin-menu-filters input,
+    .admin-menu-filters select {
+        width: 100%;
     }
 
     .content-a {

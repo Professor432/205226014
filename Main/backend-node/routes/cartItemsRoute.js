@@ -9,29 +9,53 @@ const cartItemRouter = express.Router();
 
 
 cartItemRouter.post("/", authenticateUser, requireTableOwnership, async (req, res) => {
-    // console.log(req.body)
+    let client;
     try {
         if (!req.body.table_id || !req.body.menu_name || !req.body.quantity || !req.body.item_price || !req.body.total_price || !req.body.item_profit || !req.body.total_profit || !req.body.date_time) {
             return res.status(400).json({ message: "All fields are mandatory !!" })
         }
-        const newCartItem = await pool.query("INSERT INTO cart_items(table_id, menu_name, quantity, item_price, total_price, item_profit, total_profit, date_time) VALUES($1,$2,$3,$4,$5,$6,$7,$8)",
-            [req.body.table_id, req.body.menu_name, req.body.quantity, req.body.item_price, req.body.total_price, req.body.item_profit, req.body.total_profit, req.body.date_time]);
-        let total_bill_amount = await pool.query("SELECT SUM(total_price) AS total_bill_amount FROM cart_items WHERE table_id = $1",[req.body.table_id]);
-        let total_bill_profit = await pool.query("SELECT SUM(total_profit) AS total_bill_profit FROM cart_items WHERE table_id = $1",[req.body.table_id]);
-        // console.log(total_bill_amount.rows[0].total_bill_amount, total_bill_profit.rows[0].total_bill_profit)
-        total_bill_amount = parseInt(total_bill_amount.rows[0].total_bill_amount);
-        total_bill_profit = parseInt(total_bill_profit.rows[0].total_bill_profit);
-        // console.log("nik in cartItems Route1");
-        await pool.query("INSERT INTO cart(table_id, total_bill_amount, total_bill_profit, date_time) VALUES($1,$2,$3,$4) ON CONFLICT(table_id) DO UPDATE SET total_bill_amount = EXCLUDED.total_bill_amount, total_bill_profit = EXCLUDED.total_bill_profit, date_time = EXCLUDED.date_time;",
-        [req.body.table_id, total_bill_amount, total_bill_profit, req.body.date_time]);
-        // console.log("nik in cartItems Route2");
-        res.status(201).json({
-            message: "CartItem created successfully !!",
-            // data: newCartItems
-        })
+        client = await pool.connect();
+        await client.query("BEGIN");
+        await client.query(
+            `INSERT INTO cart_items
+                (table_id, menu_name, quantity, item_price, total_price, item_profit, total_profit, date_time)
+             VALUES($1,$2,$3,$4,$5,$6,$7,$8)
+             ON CONFLICT (table_id, menu_name) DO UPDATE
+             SET quantity = cart_items.quantity + EXCLUDED.quantity,
+                 item_price = EXCLUDED.item_price,
+                 total_price = cart_items.total_price + EXCLUDED.total_price,
+                 item_profit = EXCLUDED.item_profit,
+                 total_profit = cart_items.total_profit + EXCLUDED.total_profit,
+                 date_time = EXCLUDED.date_time`,
+            [req.body.table_id, req.body.menu_name, req.body.quantity, req.body.item_price, req.body.total_price, req.body.item_profit, req.body.total_profit, req.body.date_time]
+        );
+        const totals = await client.query(
+            `SELECT COALESCE(SUM(total_price), 0)::int AS total_bill_amount,
+                    COALESCE(SUM(total_profit), 0)::int AS total_bill_profit
+             FROM cart_items WHERE table_id = $1`,
+            [req.body.table_id]
+        );
+        await client.query(
+            `INSERT INTO cart(table_id, total_bill_amount, total_bill_profit, date_time)
+             VALUES($1,$2,$3,$4)
+             ON CONFLICT(table_id) DO UPDATE
+             SET total_bill_amount = EXCLUDED.total_bill_amount,
+                 total_bill_profit = EXCLUDED.total_bill_profit,
+                 date_time = EXCLUDED.date_time`,
+            [req.body.table_id, totals.rows[0].total_bill_amount, totals.rows[0].total_bill_profit, req.body.date_time]
+        );
+        await client.query("COMMIT");
+        return res.status(201).json({ message: "Cart item added successfully." });
     } catch (error) {
-        console.log("ERROR MESSAGE ::", error.message);
-        res.status(500).json({ message: "Can't create a new CartItem!!" });
+        if (client) {
+            await client.query("ROLLBACK");
+        }
+        console.error("Unable to add cart item:", error.message);
+        return res.status(500).json({ message: "Unable to add item to cart." });
+    } finally {
+        if (client) {
+            client.release();
+        }
     }
 });
 
@@ -39,6 +63,7 @@ cartItemRouter.post("/", authenticateUser, requireTableOwnership, async (req, re
 cartItemRouter.get("/", authenticateAdmin, async (req, res) => {
     try {
         const allCartItems = await pool.query(`SELECT*FROM cart_items ORDER BY table_id ASC, menu_name ASC;`);
+        res.setHeader("Cache-Control", "no-store");
         return res.status(200).json({
             message: "All CartItems received !!",
             count: allCartItems.rows.length,

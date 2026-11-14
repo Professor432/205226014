@@ -1,9 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { restaurantMenu as menuAxios, category as categoryAxios } from '../AxiosCreate';
 import './AdminMenu.css';
 import Product from './product';
-import AdminCategory from '../AdminCategory/AdminCategory'; // Import the AdminCategory component
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import Modal from 'react-bootstrap/Modal';
@@ -11,14 +9,7 @@ import ButtonComponent from '../Button/ButtonComponent';
 import Pagination from '../PaginationBar/PaginationBar';
 import Loader from '../Loader/Loader';
 
-export default function () {
-
-  // console.log("nik in admin menu");
-  const navigate = useNavigate();
-  if (!localStorage.getItem("isAdminAuth")) {
-    navigate('/adminlogin');
-  }
-
+export default function AdminMenu() {
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [products, setProducts] = useState([]);
@@ -32,7 +23,10 @@ export default function () {
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [errorModalMessages, setErrorModalMessages] = useState([]);
   const [currPage, setCurrentPage] = useState(1);
-  const [limit, setLimit] = useState(6);
+  const limit = 6;
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('');
+  const [refreshKey, setRefreshKey] = useState(0);
 
   const toggleErrorModal = (messages) => {
     setErrorModalMessages(messages);
@@ -55,9 +49,16 @@ export default function () {
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true)
-      await menuAxios.get(`?page=${currPage}&limit=${limit}`)
+      const params = new URLSearchParams({
+        page: currPage,
+        limit,
+        searchTerm: searchTerm.trim(),
+      });
+      if (selectedCategory) {
+        params.set('category', selectedCategory);
+      }
+      await menuAxios.get(`?${params.toString()}`)
         .then((response) => {
-          // console.log(response.data.data)
           setProducts(response.data.data)
           setMenuItemsCnt(response.data.totalCount);
           setLoading(false);
@@ -68,7 +69,7 @@ export default function () {
         });
     }
     fetchData();
-  }, [menuItemsCnt, currPage]);
+  }, [currPage, limit, searchTerm, selectedCategory, refreshKey]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -89,30 +90,8 @@ export default function () {
   const [modal, setModal] = useState(false);
 
   const toggleModal = () => {
-    setMenuItemsCnt(menuItemsCnt + 1);
-    setMenuName("");
-    setCategory("");
-    setDescription("");
-    setPrice();
-    setProfit();
-    setImg("");
-    setModal(!modal)
+    setModal((open) => !open);
   }
-
-  const handleImageChange = (e) => {
-    const selectedFile = e.target.files[0];
-    if (selectedFile) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        // The result will be a base64-encoded image
-        const base64Image = reader.result;
-        // Do something with the base64Image, such as setting it in state or displaying it
-        // console.log(base64Image); // For demonstration, logging the base64 string
-        setImg(base64Image);
-      };
-      reader.readAsDataURL(selectedFile);
-    }
-  };
 
   const addItem = async (e) => {
     e.preventDefault();
@@ -148,16 +127,14 @@ export default function () {
       }
     })
       .then((response) => {
-        // console.log([response.data][0].data)
-        setMenuItemsCnt(menuItemsCnt + 1);
+        setRefreshKey((key) => key + 1);
         setMenuName("");
         setCategory("");
         setDescription("");
-        setPrice();
-        setProfit();
+        setPrice('');
+        setProfit('');
         setImg("");
-        console.log([response.data][0].message);
-        setModal(!modal)
+        setModal(false);
         setLoading(false);
         if (response.status === 201) {
           toast.success("MenuItem created successfully ");
@@ -185,6 +162,31 @@ export default function () {
       <div className="addi-a">
         <h2>Menu Items:</h2>
         <ButtonComponent color={"button4"} message={"Add Item"} func={toggleModal} />
+      </div>
+      <div className="admin-menu-filters">
+        <input
+          type="search"
+          placeholder="Search menu items"
+          aria-label="Search menu items"
+          value={searchTerm}
+          onChange={(event) => {
+            setSearchTerm(event.target.value);
+            setCurrentPage(1);
+          }}
+        />
+        <select
+          aria-label="Filter menu items by category"
+          value={selectedCategory}
+          onChange={(event) => {
+            setSelectedCategory(event.target.value);
+            setCurrentPage(1);
+          }}
+        >
+          <option value="">All categories</option>
+          {categories.map((cat) => (
+            <option key={cat.category_id} value={cat.categoryName}>{cat.categoryName}</option>
+          ))}
+        </select>
       </div>
       {modal && (
         <div className='overlay-a' onClick={toggleModal}>
@@ -223,7 +225,7 @@ export default function () {
                 <input type="number" className="in-a" name="profit" required value={profit} onChange={(e) => setProfit(e.target.value)} />
               </div>
               <div className='bu-fo-a'>
-                <ButtonComponent color={"primary"} message={"ADD"} />
+                <ButtonComponent type="submit" color={"primary"} message={"ADD"} />
                 <ButtonComponent color={"secondary"} message={"CLOSE"} func={toggleModal} />
               </div>
             </form>
@@ -232,9 +234,10 @@ export default function () {
       <section className="item-list">
         {
           products.map((product) => (
-            <Product key={product.menu_id} data={product} menuItemsCnt={menuItemsCnt} setMenuItemsCnt={setMenuItemsCnt} />
+            <Product key={product.menu_id} data={product} onChange={() => setRefreshKey((key) => key + 1)} />
           ))
         }
+        {products.length === 0 && <p className="admin-menu-empty">No menu items match your search.</p>}
         {(menuItemsCnt <= limit) ? (<></>) : (
           <Pagination
             currPage={currPage}

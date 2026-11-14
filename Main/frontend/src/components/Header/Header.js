@@ -7,24 +7,19 @@ import ButtonComponent from "../Button/ButtonComponent";
 import Link from "@mui/material/Link";
 import Drawer from "@mui/material/Drawer";
 import List from "@mui/material/List";
-import ListItem from "@mui/material/ListItem";
+import ListItemButton from "@mui/material/ListItemButton";
 import ListItemText from "@mui/material/ListItemText";
 import { useMediaQuery } from "@mui/material";
-import { useNavigate } from "react-router-dom";
-import "./Header.css"
-import Automn_logo from "../../assets/Automn_logo.png"
+import { Link as RouterLink, useLocation, useNavigate } from "react-router-dom";
+import "./Header.css";
+import Automn_logo from "../../assets/Automn_logo.png";
 import { notifyAuthChange } from "../../auth";
 
 export default function Header() {
   const textColor = "#942d2d";
-
-  const linkStyle = {
-    color: textColor,
-    textDecoration: "none",
-  };
-
   const isSmallScreen = useMediaQuery("(max-width:1000px)");
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [isAdmin, setIsAdmin] = useState(localStorage.getItem("isAdminAuth") === "true");
@@ -43,11 +38,40 @@ export default function Header() {
     };
   }, []);
 
-  const handleDrawerOpen = () => {
-    setDrawerOpen(true);
-  };
+  const navigationLinks = [
+    { label: "Home", path: "/" },
+    ...(isAdmin
+      ? [
+          { label: "Category", path: "/admincategory" },
+          { label: "Menu", path: "/adminmenu" },
+          { label: "DinnTable", path: "/admintable" },
+          { label: "Orders", path: "/adminorders" },
+          { label: "SalesAnalysis", path: "/adminanalysis" },
+          { label: "Feedbacks", path: "/adminfeedback" },
+        ]
+      : [
+          { label: "Menu", path: "/menu" },
+          ...(localStorage.getItem("table_id") ? [{ label: "Cart", path: "/cart" }] : []),
+          { label: "Book a Table", path: "/tablebooking" },
+          { label: "Feedbacks", path: "/adminfeedback" },
+        ]),
+    { label: "About", path: "/aboutus" },
+  ];
 
-  const handleDrawerClose = () => {
+  const desktopLinkStyle = (path) => ({
+    m: 1,
+    px: 1,
+    py: 0.75,
+    borderRadius: 1,
+    color: location.pathname === path ? "#EBF2D5" : textColor,
+    backgroundColor: location.pathname === path ? textColor : "transparent",
+    textDecoration: "none",
+    transition: "background-color 160ms ease, color 160ms ease",
+    "&:hover": { backgroundColor: textColor, color: "#EBF2D5" },
+  });
+
+  const handleDrawerNavigate = (path) => {
+    navigate(path);
     setDrawerOpen(false);
   };
 
@@ -59,217 +83,82 @@ export default function Header() {
       localStorage.removeItem("user_email");
       localStorage.removeItem("user_name");
       notifyAuthChange();
-      navigate("/");
+      navigate("/", { replace: true });
+      setDrawerOpen(false);
       return;
     }
     navigate("/signin");
+    setDrawerOpen(false);
   };
 
   const authButtonLabel = isAdmin || isUser ? "LogOut" : "Login/SignUp";
 
   return (
     <Box sx={{ marginBottom: 0, flexGrow: 1 }}>
-      <AppBar
-        position="static"
-        sx={{ backgroundColor: "#EBF2D5", boxShadow: "none" }}
-      >
+      <AppBar position="static" sx={{ backgroundColor: "#EBF2D5", boxShadow: "none" }}>
         <Toolbar>
-          <Box
-            sx={{
-              flexGrow: 1,
-              display: "flex",
-              alignItems: "center",
-            }}
-          >
-            <img
-              src={Automn_logo}
-              alt="Automn Logo"
-              style={{ width: 40, height: 40, marginRight: 8 }}
-            />
-            <Typography variant="h4" component="div" sx={{ color: textColor, fontFamily: 'Dancing Script' }} className="rest-name"
-              onClick={() => navigate('/')}>
+          <Box sx={{ flexGrow: 1, display: "flex", alignItems: "center" }}>
+            <img src={Automn_logo} alt="Automn Logo" style={{ width: 40, height: 40, marginRight: 8 }} />
+            <Typography
+              variant="h4"
+              component="div"
+              sx={{ color: textColor, fontFamily: "Dancing Script" }}
+              className="rest-name"
+              onClick={() => navigate("/")}
+            >
               Automn
             </Typography>
           </Box>
 
           {isSmallScreen ? (
-            // Hamburger menu for small screens
             <Box
               className="menu-icon"
-              onClick={handleDrawerOpen}
-              sx={{ cursor: "pointer", fontSize: 24, marginRight: 0 }}
+              onClick={() => setDrawerOpen(true)}
+              sx={{ cursor: "pointer", fontSize: 24 }}
+              aria-label="Open navigation menu"
+              role="button"
+              tabIndex={0}
             >
               &#9776;
             </Box>
           ) : (
-            // Navigation links for larger screens
-            <Box className='navbar'
-              sx={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                flexWrap: "no-wrap",
-                width: "100%",
-              }}
-            >
-              <Link href="/" color="inherit" sx={{ m: 2, ...linkStyle }}>
-                Home
-              </Link>
-              {isAdmin ? (
-                <>
-                  <Link
-                    href="/admincategory"
-                    color="inherit"
-                    sx={{ m: 2, ...linkStyle }}
-                  >
-                    Category
-                  </Link>
-                  <Link
-                    href="/adminmenu"
-                    color="inherit"
-                    sx={{ m: 2, ...linkStyle }}
-                  >
-                    Menu
-                  </Link>
-                  <Link
-                    href="/admintable"
-                    color="inherit"
-                    sx={{ m: 2, ...linkStyle }}
-                  >
-                    DinnTable
-                  </Link>
-                  <Link
-                    href="/adminorders"
-                    color="inherit"
-                    sx={{ m: 2, ...linkStyle }}
-                  >
-                    Orders
-                  </Link>
-                  <Link
-                    href="/adminanalysis"
-                    color="inherit"
-                    sx={{ m: 2, ...linkStyle }}
-                  >
-                    SalesAnalysis
-                  </Link>
-                  <Link
-                    href="/adminfeedback"
-                    color="inherit"
-                    sx={{ m: 2, ...linkStyle }}
-                  >
-                    Feedbacks
-                  </Link>
-                </>
-              ) : (
-                <>
-                  <Link
-                    href="/menu"
-                    color="inherit"
-                    sx={{ m: 2, ...linkStyle }}
-                  >
-                    Menu
-                  </Link>
-                  {localStorage.getItem("table_id") && (
-                    <Link
-                      href="/cart"
-                      color="inherit"
-                      sx={{ m: 2, ...linkStyle }}
-                    >
-                      Cart
-                    </Link>
-                  )}
-                  <Link
-                    href="/tablebooking"
-                    color="inherit"
-                    sx={{ m: 2, ...linkStyle }}
-                  >
-                    Book a Table
-                  </Link>
-                  <Link
-                    href="/adminfeedback"
-                    color="inherit"
-                    sx={{ m: 2, ...linkStyle }}
-                  >
-                    Feedbacks
-                  </Link>
-                </>
-              )}
-              
-              <Link
-                href="/aboutus"
-                color="inherit"
-                sx={{ m: 2, ...linkStyle }}
-              >
-                About
-              </Link>
+            <Box className="navbar" sx={{ display: "flex", alignItems: "center", justifyContent: "center", width: "100%" }}>
+              {navigationLinks.map(({ label, path }) => (
+                <Link
+                  key={path}
+                  component={RouterLink}
+                  to={path}
+                  color="inherit"
+                  aria-current={location.pathname === path ? "page" : undefined}
+                  sx={desktopLinkStyle(path)}
+                >
+                  {label}
+                </Link>
+              ))}
             </Box>
           )}
 
           {!isSmallScreen && (
-            // "Login/Signup" and "Logout" buttons for larger screens
             <ButtonComponent color={"tertiary"} message={authButtonLabel} func={handleAuthButton} />
           )}
         </Toolbar>
       </AppBar>
 
-      {/* Drawer for small screens */}
-      <Drawer
-        anchor="right"
-        open={drawerOpen}
-        onClose={handleDrawerClose}
-        sx={{ width: "70vw" }}
-      >
-        <List style={{ backgroundColor: '#942D2D', height: '100%', color: '#EBF2D5' }}>
-          <ListItem button onClick={() => navigate("/")}>
-            <ListItemText primary="Home" />
-          </ListItem>
-          {isAdmin ? (
-            <>
-              <ListItem button onClick={() => navigate("/admincategory")}>
-                <ListItemText primary="Category" />
-              </ListItem>
-              <ListItem button onClick={() => navigate("/adminmenu")}>
-                <ListItemText primary="Menu" />
-              </ListItem>
-              <ListItem button onClick={() => navigate("/admintable")}>
-                <ListItemText primary="DinnTable" />
-              </ListItem>
-              <ListItem button onClick={() => navigate("/adminanalysis")}>
-                <ListItemText primary="SalesAnalysis" />
-              </ListItem>
-              <ListItem button onClick={() => navigate("/adminfeedback")}>
-                <ListItemText primary="Feedbacks" />
-              </ListItem>
-              <ListItem button onClick={() => navigate("/adminorders")}>
-                <ListItemText primary="OrderDetails" />
-              </ListItem>
-            </>
-          ) : (
-            <>
-              <ListItem button onClick={() => navigate("/menu")}>
-                <ListItemText primary="Menu" />
-              </ListItem>
-              {localStorage.getItem("table_id") && (
-                <ListItem button onClick={() => navigate("/cart")}>
-                  <ListItemText primary="Cart" />
-                </ListItem>
-              )}
-              <ListItem button onClick={() => navigate("/tablebooking")}>
-                <ListItemText primary="Book a Table" />
-              </ListItem>
-              <ListItem button onClick={() => navigate("/adminfeedback")}>
-                <ListItemText primary="Feedback" />
-              </ListItem>
-              
-            </>
-          )}
-          <ListItem button onClick={() => navigate("/aboutus")}>
-            <ListItemText primary="About" />
-          </ListItem>
-          {/* "Login/Signup" and "Logout" buttons for small screens */}
-          <ListItem>
-          <ButtonComponent color={"tertiary"} message={authButtonLabel} func={handleAuthButton} />
-          </ListItem>
+      <Drawer anchor="right" open={drawerOpen} onClose={() => setDrawerOpen(false)} sx={{ width: "70vw" }}>
+        <List className="navigation-drawer">
+          {navigationLinks.map(({ label, path }) => (
+            <ListItemButton
+              key={path}
+              selected={location.pathname === path}
+              onClick={() => handleDrawerNavigate(path)}
+              aria-current={location.pathname === path ? "page" : undefined}
+            >
+              <ListItemText primary={label} />
+            </ListItemButton>
+          ))}
+          <ListItemButton onClick={handleAuthButton}>
+            <ListItemText primary={authButtonLabel} />
+          </ListItemButton>
         </List>
       </Drawer>
     </Box>

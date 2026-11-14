@@ -1,0 +1,103 @@
+.sales-analysis-header {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 20px;
+    margin-bottom: 24px;
+}
+
+.sales-analysis-header h1 {
+    margin: 0;
+    font-family: 'David Libre', serif;
+}
+
+.sales-analysis-header p {
+    margin: 6px 0 0;
+    font-size: 1.1rem;
+}
+
+.sales-analysis-header label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 600;
+}
+
+.sales-analysis-header select {
+    min-width: 150px;
+    padding: 8px 10px;
+    border: 1px solid #942D2D;
+    border-radius: 6px;
+    background: #fff;
+    color: #942D2D;
+}
+
+.sales-summary {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin: 22px 0;
+}
+
+.sales-summary article {
+    display: flex;
+    min-width: 180px;
+    flex-direction: column;
+    gap: 4px;
+    padding: 16px 22px;
+    border-left: 4px solid #E8B45B;
+    border-radius: 8px;
+    background: #fff;
+    box-shadow: 0 4px 14px rgba(67, 29, 29, 0.1);
+}
+
+.sales-summary strong {
+    font-size: 1.8rem;
+}
+
+.sales-empty {
+    margin: 18px 0;
+}
+
+.sales-error {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    padding: 18px;
+    color: #942D2D;
+}
+
+.sales-error button {
+    padding: 8px 16px;
+    border: 1px solid #942D2D;
+    border-radius: 5px;
+    background: #942D2D;
+    color: #EBF2D5;
+    cursor: pointer;
+}
+
+.sales-charts {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 440px), 1fr));
+    gap: 24px;
+}
+
+.sales-chart {
+    min-width: 0;
+    overflow: hidden;
+    border-radius: 10px;
+    box-shadow: 0 6px 18px rgba(67, 29, 29, 0.12);
+}
+
+@media (max-width: 700px) {
+    .sales-analysis-header {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .sales-analysis-header label {
+        justify-content: space-between;
+    }
+}

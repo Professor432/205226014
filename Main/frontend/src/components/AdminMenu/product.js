@@ -8,7 +8,6 @@ import { restaurantMenu as menuAxios, category as categoryAxios } from '../Axios
 export default function Product(props) {
 
     // console.log(props.data)
-    const [loading, setLoading] = useState(true);
     const [categories, setCategories] = useState([]);
     const [menu_name, setMenuName] = useState(props.data.menu_name);
     const [category, setCategory] = useState(props.data.categoryName);
@@ -46,49 +45,28 @@ export default function Product(props) {
         setModal(!modal)
     }
     useEffect(() => {
-        setLoading(true);
         categoryAxios
             .get('/')
             .then((response) => {
                 setCategories(response.data.data);
-                setLoading(false);
             })
             .catch((error) => {
                 console.log('ERROR MESSAGE ::', error);
-                setLoading(false);
+                toast.error('Unable to load categories.');
             });
     }, []);
-    const handleImageChange = (e) => {
-        const selectedFile = e.target.files[0];
-        if (selectedFile) {
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                // The result will be a base64-encoded image
-                const base64Image = reader.result;
-                // Do something with the base64Image, such as setting it in state or displaying it
-                // console.log(base64Image); // For demonstration, logging the base64 string
-                setImg(base64Image);
-            };
-            reader.readAsDataURL(selectedFile);
-        }
-    };
 
     const editProduct = async (e) => {
         e.preventDefault();
 
         const accessToken = localStorage.getItem("accessToken");
-        // console.log(accessToken)
         if (!accessToken) {
-            setLoading(false);
-            // alert('An error happened. Please Check console');
-            // enqueueSnackbar('UNAUTHORIZED !!', { variant: 'error' });
-            console.log("UNAUTHORIZED!!");
+            toast.error("Authorization error.");
             return;
         }
         const validationErrors = validateInput();
 
         if (validationErrors.length > 0) {
-            setLoading(false);
             toggleErrorModal(validationErrors);
             return;
         }
@@ -106,32 +84,26 @@ export default function Product(props) {
             }
         })
             .then((response) => {
-                // console.log([response.data][0].data)
-                console.log([response.data][0].message);
-                setModal(!modal)
-                // just re-render all items
-                props.setMenuItemsCnt(props.menuItemsCnt + 1);
-                props.setMenuItemsCnt(props.menuItemsCnt - 1);
-                setLoading(false);
+                setModal(false);
+                props.onChange();
                 if (response.status === 200) {
                     toast.success("MenuItem edited successfully ");
                 }
             })
             .catch((error) => {
                 console.log("ERROR MESSAGE ::", error)
-                setLoading(false);
                 toast.error("Menu item name already exists");
             });
     }
 
     const deleteProduct = async () => {
+        if (!window.confirm(`Delete menu item "${props.data.menu_name}"?`)) {
+            return;
+        }
+
         const accessToken = localStorage.getItem("accessToken");
-        // console.log(accessToken)
         if (!accessToken) {
-            setLoading(false);
-            // alert('An error happened. Please Check console');
-            // enqueueSnackbar('UNAUTHORIZED !!', { variant: 'error' });
-            console.log("UNAUTHORIZED!!");
+            toast.error("Authorization error.");
             return;
         }
 
@@ -141,17 +113,13 @@ export default function Product(props) {
             }
         })
             .then((response) => {
-                // console.log([response.data][0].data)
-                console.log([response.data][0].message);
-                props.setMenuItemsCnt(props.menuItemsCnt - 1);
-                setLoading(false);
+                props.onChange();
                 if (response.status === 200) {
                     toast.success("MenuItem deleted successfully ");
                 }
             })
             .catch((error) => {
                 console.log("ERROR MESSAGE ::", error)
-                setLoading(false);
                 toast.error("Database error, Can't delete.");
             });
     }
@@ -197,7 +165,6 @@ export default function Product(props) {
                             </div>
                             <div className="row-i">
                                 <label htmlFor="img">Image URL :</label>
-                                {/* <input type="file" className="in-ad" name="img" onChange={(e) => handleImageChange(e)} /> */}
                                 <input type="text" className="in-i" name="img" required value={img} onChange={(e) => setImg(e.target.value)} />
                             </div>
                             <div className="row-i">
@@ -209,7 +176,7 @@ export default function Product(props) {
                                 <input type="number" className="in-i" name="profit" required value={profit} onChange={(e) => setProfit(e.target.value)} />
                             </div>
                             <div className='bu-fo-i'>
-                                <ButtonComponent color={"primary"} message={"Edit"} />
+                                <ButtonComponent type="submit" color={"primary"} message={"Edit"} />
                                 <ButtonComponent color={"secondary"} message={"Close"} func={toggleModal} />
                             </div>
                         </form>

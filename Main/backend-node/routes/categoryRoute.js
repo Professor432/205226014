@@ -17,7 +17,7 @@ categoryRouter.post("/", authenticateToken, async (req, res) => {
         const newCategory = await pool.query("INSERT INTO category(category_id,\"categoryName\") VALUES($1,$2) ON CONFLICT (\"categoryName\") DO NOTHING",
             [category_id, req.body.categoryName]);
         if (newCategory.rowCount == 0) {
-            res.status(500).json({ message: "Category already exists!!" });
+            return res.status(500).json({ message: "Category already exists!!" });
         }
         res.status(201).json({
             message: "Category created successfully !!",
@@ -42,16 +42,7 @@ categoryRouter.get("/", async (req, res) => {
                     ) r ON c."categoryName" = r."categoryName" 
                     ORDER BY c."categoryName" ASC;`);
 
-        // Set cache-related headers
-        const max_age = 120; // 120 seconds
-        const currentDate = new Date();
-        const thirtySecondsLater = new Date(currentDate.getTime() + max_age * 1000); // 30 seconds later
-        // const lastModified = /* Calculate or retrieve the last modified date of the data */
-
-        res.setHeader('Cache-Control', `private, max-age=${max_age}`);
-        res.setHeader('Date', currentDate.toUTCString());
-        res.setHeader('Expires', thirtySecondsLater.toUTCString());
-        // res.setHeader('Last-Modified', lastModified.toUTCString());
+        res.setHeader('Cache-Control', 'no-store');
 
         return res.status(200).json({
             message: "All categories received !!",

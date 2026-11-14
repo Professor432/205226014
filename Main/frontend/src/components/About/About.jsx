@@ -4,9 +4,6 @@ import cover from '../../assets/about-1.png';
 import aboutAsset from '../../assets/assetAbout.png';
 import { Chef } from './Chef';
 import Loader from '../Loader/Loader'; // Import the Loader component
-import facebook from '../../assets/facebook.png';
-import instagram from '../../assets/instagram.png';
-import twitter from '../../assets/twitter.png';
 import assetbel from '../../assets/asssetbel.png';
 
 export function About() {
@@ -50,9 +47,9 @@ export function About() {
           <div className='flexdays' style={{ marginBottom: '50px' }}>
             <div className='days'>
               <div className='open'>Opening Hours</div>
-              <div>Monday-Wednesday: 11AM-9PM</div>
-              <div>Thursday-Saturday: 11PM-10PM</div>
-              <div>Happy Hour: Everyday 2PM-6PM</div>
+              <div>Monday - Thursday: 11 AM - 10 PM</div>
+              <div>Friday - Sunday: 11 AM - 1 AM</div>
+              <div>Happy Hour: 2 PM - 6 PM</div>
             </div>
             {/* <div>
                 <div className='open'>Connect With Us</div>

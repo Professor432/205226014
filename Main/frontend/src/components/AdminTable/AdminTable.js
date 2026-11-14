@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { table as tableAxios } from '../AxiosCreate';
 import './AdminTab.css';
@@ -8,15 +7,10 @@ import Modal from 'react-bootstrap/Modal';
 import ButtonComponent from '../Button/ButtonComponent';
 import Loader from '../Loader/Loader';
 export default function AdminTab() {
-  const navigate = useNavigate();
-
-  if (!localStorage.getItem('isAdminAuth')) {
-    navigate('/adminlogin');
-  }
-
   const [loading, setLoading] = useState(true);
   const [dinnTable, setDinnTable] = useState([]);
-  const [dinnTableCnt, setDinnTableCnt] = useState(0);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [refreshKey, setRefreshKey] = useState(0);
   const [tableid, setTableid] = useState(0);
   const [capacity, setCapacity] = useState(0);
   const [availabilityStatus, setAvailabilityStatus] = useState('');
@@ -28,15 +22,15 @@ export default function AdminTab() {
     tableAxios
       .get(`/`)
       .then((response) => {
-        setDinnTableCnt([response.data][0].count);
-        setDinnTable([response.data][0].data);
+        setDinnTable(response.data.data);
         setLoading(false);
       })
       .catch((error) => {
         console.log('ERROR MESSAGE ::', error);
+        toast.error('Unable to load tables.');
         setLoading(false);
       });
-  }, [dinnTableCnt]);
+  }, [refreshKey]);
 
   const [modal, setModal] = useState(false);
 
@@ -96,7 +90,7 @@ export default function AdminTab() {
         },
       })
       .then((response) => {
-        setDinnTableCnt(dinnTable + 1);
+        setRefreshKey((key) => key + 1);
         setTableid(0);
         setCapacity(0);
         setAvailabilityStatus('');
@@ -113,6 +107,12 @@ export default function AdminTab() {
       });
   };
 
+  const filteredTables = dinnTable.filter((table) =>
+    `${table.table_id} ${table.capacity} ${table.availability_status}`
+      .toLowerCase()
+      .includes(searchTerm.trim().toLowerCase())
+  );
+
   return (
     
     <div className="adm-ad">
@@ -122,6 +122,14 @@ export default function AdminTab() {
       <div className="addi-ad">
         <div className="w-ad">
           <h2 className="ti-ad">Tables:</h2>
+          <input
+            type="search"
+            className="table-search"
+            placeholder="Search tables"
+            aria-label="Search dining tables"
+            value={searchTerm}
+            onChange={(event) => setSearchTerm(event.target.value)}
+          />
           <ButtonComponent color={"button4"} message={"Add Table"} func={toggleModal} />
         </div>
       </div> 
@@ -166,7 +174,7 @@ export default function AdminTab() {
                 </select>
               </div>
               <div className="bu-fo-ad">
-                <ButtonComponent color={"primary"} message={"ADD"} />
+                <ButtonComponent type="submit" color={"primary"} message={"ADD"} />
                 <ButtonComponent color={"secondary"} message={"CLOSE"} func={toggleModal} />
               </div>
             </form>
@@ -174,9 +182,14 @@ export default function AdminTab() {
         </div>
       )}
       <section className="item-list-ad">
-        {dinnTable.map((table) => (
-          <Table key={table.table_id} data={table} dinnTableCnt={dinnTableCnt} setDinnTableCnt={setDinnTableCnt} />
+        {filteredTables.map((table) => (
+          <Table key={table.table_id} data={table} onChange={() => setRefreshKey((key) => key + 1)} />
         ))}
+        {filteredTables.length === 0 && (
+          <p className="table-empty">
+            {dinnTable.length === 0 ? 'No dining tables available.' : 'No tables match your search.'}
+          </p>
+        )}
       </section>
 
       {/* Custom Error Bullet Point List */}

@@ -23,7 +23,7 @@ import Orders from './components/AdminOrders/Orders';
 import UserSignIn from './components/Login/MainContentSignIn';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import { isUserAuthenticated } from './auth';
+import { isAdminAuthenticated, isUserAuthenticated } from './auth';
 
 function RequireUser({ children }) {
   const [authenticated, setAuthenticated] = React.useState(isUserAuthenticated());
@@ -39,6 +39,22 @@ function RequireUser({ children }) {
   }, []);
 
   return authenticated ? children : <Navigate to="/signin" replace />;
+}
+
+function RequireAdmin({ children }) {
+  const [authenticated, setAuthenticated] = React.useState(isAdminAuthenticated());
+
+  React.useEffect(() => {
+    const syncAuth = () => setAuthenticated(isAdminAuthenticated());
+    window.addEventListener("auth-change", syncAuth);
+    window.addEventListener("storage", syncAuth);
+    return () => {
+      window.removeEventListener("auth-change", syncAuth);
+      window.removeEventListener("storage", syncAuth);
+    };
+  }, []);
+
+  return authenticated ? children : <Navigate to="/adminlogin" replace />;
 }
 
 function App() {
@@ -57,13 +73,13 @@ function App() {
               <Route path='/userlogin' element={<><UserLogin /> <Footer/></>} />
               <Route path='/signin' element={<><Header /><UserSignIn /> <Footer /></>} />
               <Route path='/adminlogin' element={<AdminLogin />} />            
-              <Route path='/admintable' element={<><Header/> <AdminTable/> <Footer/></>} />
-              <Route path='/adminuser' element={<><Header/> <AdminUser/> <Footer/></>} />
-              <Route path='/adminorders' element={<><Header/> <Orders/> <Footer/> </>} />
-              <Route path='/adminmenu' element={<><Header/><AdminMenu/><Footer/></>} />
-              <Route path='/admincategory' element={<><Header/> <AdminCategory/> <Footer/></>} />
+              <Route path='/admintable' element={<RequireAdmin><Header/> <AdminTable/> <Footer/></RequireAdmin>} />
+              <Route path='/adminuser' element={<RequireAdmin><Header/> <AdminUser/> <Footer/></RequireAdmin>} />
+              <Route path='/adminorders' element={<RequireAdmin><Header/> <Orders/> <Footer/></RequireAdmin>} />
+              <Route path='/adminmenu' element={<RequireAdmin><Header/><AdminMenu/><Footer/></RequireAdmin>} />
+              <Route path='/admincategory' element={<RequireAdmin><Header/> <AdminCategory/> <Footer/></RequireAdmin>} />
               <Route path='/adminfeedback' element={<><Header/> <Reviewlist/> <Footer/></>} />
-              <Route path='/adminanalysis' element={<><Header/> <Analysis/> <Footer/></>} />
+              <Route path='/adminanalysis' element={<RequireAdmin><Header/> <Analysis/> <Footer/></RequireAdmin>} />
               <Route path='/*' element={<_404NotFound />} />
             </Routes>
           </Router>    

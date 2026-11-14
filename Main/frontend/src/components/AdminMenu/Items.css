@@ -156,7 +156,15 @@
 
 .admin-menu-button {
     display: flex;
+    flex: 0 1 200px;
     flex-direction: row;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+.admin-menu-button .buttonComponent {
+    flex: 1 1 80px;
 }
 
 /* Media query for screens 800px and below */
@@ -168,6 +176,11 @@
         height: 20%;
         justify-content: space-evenly;
         align-items: center;
+    }
+    .admin-menu-button {
+        flex: 0 1 150px;
+        flex-wrap: wrap;
+        gap: 4px;
     }
     .but-i-2 {
         font-size: 16px; /* Decrease the font size */

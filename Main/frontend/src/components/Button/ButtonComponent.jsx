@@ -1,4 +1,3 @@
-import React, { useState } from "react";
 import "./ButtonComponent.scss";
 
 
@@ -23,6 +22,7 @@ function ButtonComponent(props) {
         <div className="buttonComponent">
             <button
                 className={buttonClass}
+                type={props.type || "button"}
                 onClick={props.func}>
                 {props.message}
             </button>

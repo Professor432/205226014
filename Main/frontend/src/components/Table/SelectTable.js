@@ -43,23 +43,36 @@ const styles = {
 
 
 const SelectTable = ({ totalMembers }) => {
-  console.log("nik in selectTable...")
   const [loading, setLoading] = useState(true);
   const [selectedTable, setSelectedTable] = useState(null);
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [tablesData, setTablesData] = useState([]);
+  const [loadError, setLoadError] = useState("");
 
   useEffect(() => {
+    let active = true;
+    setLoading(true);
+    setLoadError("");
     tableAxios.get(`capacity/${totalMembers}`)
       .then((response) => {
-        // console.log([response.data][0].data);
-        setTablesData([response.data][0].data)
-        setLoading(false)
+        if (active) {
+          setTablesData(response.data.data);
+        }
       })
       .catch((error) => {
         console.log("ERROR MESSAGE ::", error)
-        setLoading(false);
+        if (active) {
+          setLoadError(error.response?.data?.message || "Unable to load available tables.");
+        }
+      })
+      .finally(() => {
+        if (active) {
+          setLoading(false);
+        }
       });
+    return () => {
+      active = false;
+    };
   }, [totalMembers]);
 
   const handleSelectTable = (tableNumber) => {
@@ -100,6 +113,11 @@ const SelectTable = ({ totalMembers }) => {
         <Loader />
       ) : (
       <Box minHeight="100vh" marginBottom="0px">
+        {loadError && (
+          <Typography role="alert" color="error" textAlign="center" sx={{ py: 3 }}>
+            {loadError}
+          </Typography>
+        )}
         <Box className="container">
           <Typography
             variant="h5"
@@ -240,6 +258,13 @@ const SelectTable = ({ totalMembers }) => {
                       </td>
                     </tr>
                   ))}
+                  {tablesData.length === 0 && !loadError && (
+                    <tr>
+                      <td colSpan="3" style={{ textAlign: "center", padding: "24px" }}>
+                        No available tables fit your party size.
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
               </Table>
             </Sheet>
@@ -268,16 +293,13 @@ const SelectTable = ({ totalMembers }) => {
               >
                 Confirmation
               </Typography>
-              <form>
-                <Typography sx={{ marginTop: "50px" }} fontSize={22}>
-                  {" "}
-                  Do you want to dine at this Table?{" "}
-                </Typography>
-                <div>
-                  <ButtonComponent color={"primary"} message={"Yes"} func={() => handleConfirm(true)} />
-                  <ButtonComponent color={"secondary"} message={"No"} func={() => handleConfirm(false)} />
-                </div>
-              </form>
+              <Typography sx={{ marginTop: "50px" }} fontSize={22}>
+                Do you want to dine at this table?
+              </Typography>
+              <div>
+                <ButtonComponent color={"primary"} message={"Yes"} func={() => handleConfirm(true)} />
+                <ButtonComponent color={"secondary"} message={"No"} func={() => handleConfirm(false)} />
+              </div>
             </Box>
           </Dialog>
         </Box>

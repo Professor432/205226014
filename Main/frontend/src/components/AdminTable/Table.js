@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { table as tableAxios } from '../AxiosCreate';
 import './Tab.css';
 import { toast } from "react-toastify";
@@ -8,13 +8,19 @@ import ButtonComponent from '../Button/ButtonComponent';
 export default function AdminTable(props) {
 
     // console.log(props.data)
-    const [loading, setLoading] = useState(true);
     const [tableid, setTableid] = useState(props.data.table_id);
     const [capacity, setCapacity] = useState(props.data.capacity);
     const [availabilityStatus, setAvailabilityStatus] = useState(props.data.availability_status);
     const [showErrorModal, setShowErrorModal] = useState(false);
     const [errorModalMessages, setErrorModalMessages] = useState([]);
     const [modal, setModal] = useState(false);
+
+    useEffect(() => {
+        setTableid(props.data.table_id);
+        setCapacity(props.data.capacity);
+        setAvailabilityStatus(props.data.availability_status);
+    }, [props.data]);
+
     const toggleModal = () => {
         setModal(!modal)
     }
@@ -40,18 +46,13 @@ export default function AdminTable(props) {
         e.preventDefault();
 
         const accessToken = localStorage.getItem("accessToken");
-        // console.log(accessToken)
         if (!accessToken) {
-            setLoading(false);
-            // alert('An error happened. Please Check console');
-            // enqueueSnackbar('UNAUTHORIZED !!', { variant: 'error' });
-            console.log("UNAUTHORIZED!!");
+            toast.error("Authorization error.");
             return;
         }
         const validationErrors = validateInput();
 
         if (validationErrors.length > 0) {
-            setLoading(false);
             toggleErrorModal(validationErrors);
             return;
         }
@@ -66,32 +67,26 @@ export default function AdminTable(props) {
             }
         })
             .then((response) => {
-                // console.log([response.data][0].data)
-                console.log([response.data][0].message);
-                setModal(!modal)
-                // just re-render all items
-                props.setDinnTableCnt(props.dinnTableCnt + 1);
-                props.setDinnTableCnt(props.dinnTableCnt - 1);
-                setLoading(false);
+                setModal(false);
+                props.onChange();
                 if (response.status === 200) {
                     toast.success("Edited Successfully");
                 }
             })
             .catch((error) => {
                 console.log("ERROR MESSAGE ::", error)
-                setLoading(false);
-                toast.error("Table already exists.")
+                toast.error(error.response?.data?.message || "Unable to update table.")
             });
     }
 
     const deleteTable = async () => {
+        if (!window.confirm(`Delete dining table ${props.data.table_id}?`)) {
+            return;
+        }
+
         const accessToken = localStorage.getItem("accessToken");
-        // console.log(accessToken)
         if (!accessToken) {
-            setLoading(false);
-            // alert('An error happened. Please Check console');
-            // enqueueSnackbar('UNAUTHORIZED !!', { variant: 'error' });
-            console.log("UNAUTHORIZED!!");
+            toast.error("Authorization error.");
             return;
         }
 
@@ -101,32 +96,30 @@ export default function AdminTable(props) {
             }
         })
             .then((response) => {
-                // console.log([response.data][0].data)
-                console.log([response.data][0].message);
-                props.setDinnTableCnt(props.dinnTableCnt - 1);
-                setLoading(false);
+                props.onChange();
                 if (response.status === 200) {
                     toast.success("Table removed successfully");
                 }
             })
             .catch((error) => {
                 console.log("ERROR MESSAGE ::", error)
-                setLoading(false);
                 toast.error("Database error.")
             });
     }
 
     return (
         <div className='card-tab my-2'>
-            {props.data.availability_status == "Available" ? (<div className='g-tab'></div>) : (<div className='r-tab'></div>)}
+            {props.data.availability_status === "Available" ? (<div className='g-tab'></div>) : (<div className='r-tab'></div>)}
             <div className='wrp-tab-2 py-2'>
                 <div className='wrp-tab'>
                     <h3 className='te-tab'>T{props.data.table_id}</h3>
                     <p className='cat-tab'>Capacity : {props.data.capacity}</p>
                     <p className='cat-tab'>Availability Status : {props.data.availability_status}</p>
                 </div>
-                <ButtonComponent color={"button5"} message={"Edit"} func={toggleModal} />
-                <ButtonComponent color={"button5"} message={"Delete"} func={deleteTable} />
+                <div className="admin-table-actions">
+                    <ButtonComponent color={"button5"} message={"Edit"} func={toggleModal} />
+                    <ButtonComponent color={"button5"} message={"Delete"} func={deleteTable} />
+                </div>
             </div>
             {modal && (
                 <div className='overlay-tab' onClick={toggleModal}>
@@ -148,7 +141,7 @@ export default function AdminTable(props) {
                                 </select>
                             </div>
                             <div className='bu-fo-tab'>
-                                <ButtonComponent color={"primary"} message={"Edit"} />
+                                <ButtonComponent type="submit" color={"primary"} message={"Edit"} />
                                 <ButtonComponent color={"secondary"} message={"Close"} func={toggleModal} />
                             </div>
                         </form>

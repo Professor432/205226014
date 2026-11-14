@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { category as categoryAxios } from '../AxiosCreate';
 import './AdminCat.css';
 import Category from './category';
@@ -9,31 +8,26 @@ import ButtonComponent from '../Button/ButtonComponent';
 import Loader from '../Loader/Loader'; // Import your Loader component
 
 export default function AdminCategory() {
-  const navigate = useNavigate();
-
-  if (!localStorage.getItem('isAdminAuth')) {
-    navigate('/adminlogin');
-  }
-
   const [loading, setLoading] = useState(true);
   const [category, setCategory] = useState([]);
   const [categoryName, setCategoryName] = useState('');
-  const [categoryCnt, setCategoryCnt] = useState(0);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
     setLoading(true);
     categoryAxios
       .get('/')
       .then((response) => {
-        setCategoryCnt(response.data.count);
         setCategory(response.data.data);
         setLoading(false);
       })
       .catch((error) => {
         console.log('ERROR MESSAGE ::', error);
+        toast.error('Unable to load categories.');
         setLoading(false);
       });
-  }, [categoryCnt]);
+  }, [refreshKey]);
 
   const [modal, setModal] = useState(false);
 
@@ -43,12 +37,10 @@ export default function AdminCategory() {
 
   const addCategory = async (e) => {
     e.preventDefault();
-    setLoading(true);
 
     const accessToken = localStorage.getItem('accessToken');
 
     if (!accessToken) {
-      setLoading(false);
       console.log('UNAUTHORIZED!!');
       toast.error('Authorization error.');
       return;
@@ -65,17 +57,15 @@ export default function AdminCategory() {
         },
       })
       .then((response) => {
-        setCategoryCnt(categoryCnt + 1);
+        setRefreshKey((key) => key + 1);
         setCategoryName('');
-        setModal(!modal);
-        setLoading(false);
+        setModal(false);
         if (response.status === 201) {
           toast.success('Category created successfully.');
         }
       })
       .catch((error) => {
         console.log('ERROR MESSAGE ::', error);
-        setLoading(false);
         toast.error('Category already exists.');
       });
   };
@@ -89,6 +79,14 @@ export default function AdminCategory() {
           <div className='addi-cat'>
             <div className='w-cat'>
               <h2 className='ti-cat'>Categories:</h2>
+              <input
+                type='search'
+                className='category-search'
+                placeholder='Search categories'
+                aria-label='Search categories'
+                value={searchTerm}
+                onChange={(event) => setSearchTerm(event.target.value)}
+              />
               <ButtonComponent color={'button4'} message={'Add Category'} func={toggleModal} />
             </div>
           </div>
@@ -101,7 +99,7 @@ export default function AdminCategory() {
                     <input type='text' className='in-ca' name='category' required value={categoryName} onChange={(e) => setCategoryName(e.target.value)} />
                   </div>
                   <div className='bu-fo-cat'>
-                    <ButtonComponent color={'primary'} message={'ADD'} />
+                    <ButtonComponent type="submit" color={'primary'} message={'ADD'} />
                     <ButtonComponent color={'secondary'} message={'CLOSE'} func={toggleModal} />
                   </div>
                 </form>
@@ -109,9 +107,18 @@ export default function AdminCategory() {
             </div>
           )}
           <section className='item-list-cat'>
-            {category.map((item) => (
-              <Category key={item.category_id} data={item} categoryCnt={categoryCnt} setCategoryCnt={setCategoryCnt} />
-            ))}
+            {category
+              .filter((item) => item.categoryName.toLowerCase().includes(searchTerm.trim().toLowerCase()))
+              .map((item) => (
+                <Category
+                  key={item.category_id}
+                  data={item}
+                  onChange={() => setRefreshKey((key) => key + 1)}
+                />
+              ))}
+            {category.length > 0 && !category.some((item) => item.categoryName.toLowerCase().includes(searchTerm.trim().toLowerCase())) && (
+              <p className='category-empty'>No categories match your search.</p>
+            )}
           </section>
         </>
       )}

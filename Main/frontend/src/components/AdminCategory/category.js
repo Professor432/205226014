@@ -8,7 +8,6 @@ import ButtonComponent from '../Button/ButtonComponent';
 export default function Category(props) {
 
     // console.log(props.data)
-    const [loading, setLoading] = useState(true);
     const [categoryName, setCategoryName] = useState(props.data.categoryName);
 
     const [modal, setModal] = useState(false);
@@ -19,11 +18,7 @@ export default function Category(props) {
         e.preventDefault();
 
         const accessToken = localStorage.getItem("accessToken");
-        // console.log(accessToken)
         if (!accessToken) {
-            setLoading(false);
-            // alert('An error happened. Please Check console');
-            // enqueueSnackbar('UNAUTHORIZED !!', { variant: 'error' });
             console.log("UNAUTHORIZED!!");
             toast.error("Authorization error.");
             return;
@@ -38,31 +33,26 @@ export default function Category(props) {
             }
         })
             .then((response) => {
-                // console.log([response.data][0].data)
-                console.log([response.data][0].message);
-                setModal(!modal)
-                // just re-render all items
-                props.setCategoryCnt(props.categoryCnt + 1);
-                props.setCategoryCnt(props.categoryCnt - 1);
-                setLoading(false);
+                setModal(false);
+                props.onChange();
                 if (response.status === 200)
                     toast.success("Category name edited succesfully.");
             })
             .catch((error) => {
                 console.log("ERROR MESSAGE ::", error);
                 toast.error("Category already exists");
-                setLoading(false);
             });
     }
 
     const deleteCategory = async () => {
+        if (!window.confirm(`Delete category "${props.data.categoryName}"? Its menu items will also be deleted.`)) {
+            return;
+        }
+
         const accessToken = localStorage.getItem("accessToken");
-        // console.log(accessToken)
         if (!accessToken) {
-            setLoading(false);
-            // alert('An error happened. Please Check console');
-            // enqueueSnackbar('UNAUTHORIZED !!', { variant: 'error' });
             console.log("UNAUTHORIZED!!");
+            toast.error("Authorization error.");
             return;
         }
 
@@ -72,16 +62,12 @@ export default function Category(props) {
             }
         })
             .then((response) => {
-                // console.log([response.data][0].data)
-                console.log([response.data][0].message);
-                props.setCategoryCnt(props.categoryCnt - 1);
-                setLoading(false);
+                props.onChange();
                 if (response.status === 200)
                     toast.success("Category deleted succesfully.");
             })
             .catch((error) => {
                 console.log("ERROR MESSAGE ::", error)
-                setLoading(false);
                 toast.error("Category is not deleted due to database error.");
             });
     }
@@ -107,7 +93,7 @@ export default function Category(props) {
                                 <input type="text" required className='in-t' name="categoryName" value={categoryName} onChange={(e) => setCategoryName(e.target.value)} />
                             </div>
                             <div className='bu-fo-t'>
-                                <ButtonComponent color={"primary"} message={"Edit"} />
+                                <ButtonComponent type="submit" color={"primary"} message={"Edit"} />
                                 <ButtonComponent color={"secondary"} message={"Close"} func={toggleModal} />
                             </div>
                         </form>

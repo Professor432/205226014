@@ -64,9 +64,7 @@ restaurantMenuRouter.get("/", async (req, res) => {
         }
         // const allMenuItems = await pool.query(`SELECT*FROM \"restaurantMenu\" ORDER BY menu_name ASC`);
 
-        // Set cache control headers
-        const max_age = 120; // 120 seconds
-        res.setHeader('Cache-Control', `private, max-age=${max_age}`);
+        res.setHeader('Cache-Control', 'no-store');
         
         return res.status(200).json({
             message: "All menuItems received !!",

@@ -1,125 +1,100 @@
-import React, { useState, useEffect } from 'react';
-import {useNavigate} from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
 import './orders.css';
-import { cartItems as cartItemsAxios } from "../AxiosCreate";
-import { cart as cartAxios } from "../AxiosCreate";
+import { cartItems as cartItemsAxios, cart as cartAxios } from "../AxiosCreate";
 import Loader from '../Loader/Loader';
 
 const Orders = () => {
-
-   // console.log("nik in admin orders");
-   const navigate = useNavigate();
-   if(!localStorage.getItem("isAdminAuth")) {
-       navigate('/adminlogin');
-   }
-  const [loading, setLoading] = useState(true)
-  const [totalBillAmt, setTotalBillAmt] = useState(0);
-  // const [totalBillProfit, setTotalBillProfit] = useState([]);
-  const [cartItems, setCartItems] = useState([]);
-  // const [cartItemsCnt, setCartItemsCnt] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [ordersByTable, setOrdersByTable] = useState({});
+  const [totalBillByTable, setTotalBillByTable] = useState({});
 
   useEffect(() => {
-    // console.log("nik in cart useeffect1");
-    const func = async () => {
-      await cartItemsAxios.get(`/`)
-        .then((response) => {
-          console.log([response.data.data][0])
+    let active = true;
+    const fetchOrders = async () => {
+      try {
+        const [itemsResponse, totalsResponse] = await Promise.all([
+          cartItemsAxios.get('/'),
+          cartAxios.get('/'),
+        ]);
+        if (!active) {
+          return;
+        }
 
-          // Group items by table_id
-          const items = [response.data.data][0];
-          const groupedItems = items.reduce((grouped, item) => {
-            if (!grouped[item.table_id]) {
-              grouped[item.table_id] = [];
-            }
-            grouped[item.table_id].push(item);
-            return grouped;
-          }, {});
+        const groupedOrders = itemsResponse.data.data.reduce((grouped, item) => {
+          const tableId = item.table_id;
+          if (!grouped[tableId]) {
+            grouped[tableId] = [];
+          }
+          grouped[tableId].push(item);
+          return grouped;
+        }, {});
+        const totals = totalsResponse.data.data.reduce((byTable, cart) => {
+          byTable[cart.table_id] = Number(cart.total_bill_amount);
+          return byTable;
+        }, {});
 
-          console.log(groupedItems);
-          // setCartItemsCnt([response.data.count][0])
-          setCartItems(groupedItems);
+        setOrdersByTable(groupedOrders);
+        setTotalBillByTable(totals);
+        setError('');
+      } catch (requestError) {
+        console.error('Unable to load order details:', requestError);
+        if (active) {
+          setError('Order details could not be loaded. Please try again.');
+        }
+      } finally {
+        if (active) {
           setLoading(false);
-        })
-        .catch((error) => {
-          console.log("ERROR MESSAGE ::", error)
-          setLoading(false);
-        });
+        }
+      }
+    };
 
-      await cartAxios.get(`/`)
-        .then((response) => {
-          console.log([response.data.data][0])
-          const totalBillData = [response.data.data][0]
-
-          // Creating a map with table_id -> total_bill_amount
-          const tableIdToBillAmtMap = {};
-          totalBillData.forEach(item => {
-            tableIdToBillAmtMap[item.table_id] = item.total_bill_amount;
-          });
-
-          console.log(tableIdToBillAmtMap);
-          setTotalBillAmt(tableIdToBillAmtMap);
-          setLoading(false)
-        })
-        .catch((error) => {
-          console.log("ERROR MESSAGE ::", error)
-          setLoading(false);
-        });
-    }
-    func();
+    fetchOrders();
+    return () => {
+      active = false;
+    };
   }, []);
 
-
   return (
-    <div className="container">
-      <h1 style={{ color: '#942D2D' }}>Order Details</h1>
+    <main className="admin-orders">
+      <h1>Order Details</h1>
       {loading ? (
-        <Loader /> // Show loader while data is being fetched
+        <Loader />
+      ) : error ? (
+        <p className="orders-message" role="alert">{error}</p>
+      ) : Object.keys(ordersByTable).length === 0 ? (
+        <p className="orders-message">There are no active orders at the moment.</p>
       ) : (
-      <div className="orders">
-        {Object.entries(cartItems).map(([tableId, orders]) => (
-          <>
-          <div className="order" key={tableId}>
-            <div className='flextable'>
-              <h3>Table #{tableId}</h3>
-            </div>
-            <div key={tableId} className='itemflex'>
-              <div>
-                <h5>Menu_Item</h5>
+        <section className="orders">
+          {Object.entries(ordersByTable).map(([tableId, orders]) => (
+            <article className="order" key={tableId}>
+              <header className="order-heading">
+                <h2>Table #{tableId}</h2>
+                <span>{orders.length} item{orders.length === 1 ? '' : 's'}</span>
+              </header>
+              <div className="order-row order-column-headings">
+                <span>Menu item</span>
+                <span>Quantity</span>
+                <span>Item price</span>
+                <span>Total</span>
               </div>
-              <div>
-                <h5>Quantity</h5>
-              </div>
-              <div>
-                <h5>Item_Price</h5>
-              </div>
-              <div>
-                <h5>Total_Price</h5>
-              </div>
-            </div>
-            {orders.map((order, index) => (
-              <div key={index} className='itemflex'>
-                <div>
+              {orders.map((order) => (
+                <div key={`${tableId}-${order.menu_name}`} className="order-row">
                   <span>{order.menu_name}</span>
-                </div>
-                <div>
                   <span>{order.quantity}</span>
+                  <span>₹{Number(order.item_price).toLocaleString('en-IN')}</span>
+                  <span>₹{Number(order.total_price).toLocaleString('en-IN')}</span>
                 </div>
-                <div>
-                  <span>{order.item_price}</span>
-                </div>
-                <div>
-                  <span>{order.total_price}</span>
-                </div>
-              </div>
-            ))}
-            <h4 className='totalBillAmt'>{totalBillAmt[tableId]}</h4>
-          </div>
-          </>
-        ))}
-      </div>)}
-    </div>
+              ))}
+              <p className="totalBillAmt">
+                Current bill: ₹{(totalBillByTable[tableId] || 0).toLocaleString('en-IN')}
+              </p>
+            </article>
+          ))}
+        </section>
+      )}
+    </main>
   );
-
 };
 
 export default Orders;

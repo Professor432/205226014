@@ -1,239 +1,191 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useEffect, useMemo, useState } from 'react';
 import CanvasJSReact from '@canvasjs/react-charts';
-import { PRODUCTS } from './data';
-import Loader from '../Loader/Loader'
+import { analysis as analysisAxios } from '../AxiosCreate';
+import Loader from '../Loader/Loader';
+import './Analysis.css';
+import { buildOrderSharePoints } from './analysisUtils';
 
-const CanvasJS = CanvasJSReact.CanvasJS;
 const CanvasJSChart = CanvasJSReact.CanvasJSChart;
 const DARKER_GROTESQUE_FONT = 'Darker Grotesque';
 
+const chartTheme = {
+  animationEnabled: true,
+  exportEnabled: true,
+  backgroundColor: '#942D2D',
+  theme: 'dark2',
+  height: 320,
+};
+
+const ratingPoints = (ratings) => ratings.map(({ rating, count }) => ({
+  label: `${rating} star${Number(rating) === 1 ? '' : 's'}`,
+  y: Number(count),
+}));
+
 export default function Analysis() {
-  const navigate = useNavigate();
-
-  if (!localStorage.getItem("isAdminAuth")) {
-    navigate('/adminlogin');
-  }
-
   const [loading, setLoading] = useState(true);
-  const [tripExpensesOccurrences, setTripExpensesOccurrences] = useState({});
-  const [orderAmounts, setOrderAmounts] = useState({});
-  const [customerRatingData, setCustomerRatingData] = useState([]);
-  const [customerRatingDeliveryData, setCustomerRatingDeliveryData] = useState([]);
-  const [selectedMonth, setSelectedMonth] = useState(null);
-  const tripExpensesChartRef = useRef(null);
-  const orderAmountChartRef = useRef(null);
-  const customerRatingChartRef = useRef(null);
-  const customerRatingDeliveryChartRef = useRef(null);
+  const [error, setError] = useState('');
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [selectedMonth, setSelectedMonth] = useState('');
+  const [dailySales, setDailySales] = useState([]);
+  const [foodRatings, setFoodRatings] = useState([]);
+  const [serviceRatings, setServiceRatings] = useState([]);
 
   useEffect(() => {
-    const fetchData = async () => {
-      // Simulate fetching data
-      await new Promise(resolve => setTimeout(resolve, 3000));
-
-      // Your existing data processing logic
-      const countTripExpensesOccurrences = () => {
-        const counts = {};
-        PRODUCTS.forEach((item) => {
-          if (!selectedMonth || item.Month === selectedMonth) {
-            const dayValue = item.Day;
-            counts[dayValue] = (counts[dayValue] || 0) + 1;
-          }
-        });
-        setTripExpensesOccurrences(counts);
-      };
-
-      const sumOrderAmounts = () => {
-        const sums = {};
-        PRODUCTS.forEach((item) => {
-          if (!selectedMonth || item.Month === selectedMonth) {
-            const dayValue = item.Day;
-            const orderAmount = item['Order Amount'] || 0;
-            sums[dayValue] = (sums[dayValue] || 0) + orderAmount;
-          }
-        });
-        setOrderAmounts(sums);
-      };
-
-      const processCustomerRating = (field) => {
-        const dataMap = new Map();
-        PRODUCTS.forEach((item) => {
-          if (!selectedMonth || item.Month === selectedMonth) {
-            const value = item[field];
-            const sumValue = item[field] || 0;
-            if (dataMap.has(value)) {
-              const currentSum = dataMap.get(value);
-              dataMap.set(value, currentSum + sumValue);
-            } else {
-              dataMap.set(value, sumValue);
-            }
-          }
-        });
-        const chartData = Array.from(dataMap).map(([value, sumValue]) => ({
-          x: value,
-          y: sumValue,
-        }));
-        return chartData;
-      };
-
-      countTripExpensesOccurrences();
-      sumOrderAmounts();
-      setCustomerRatingData(processCustomerRating('Customer Rating-Fo '));
-      setCustomerRatingDeliveryData(processCustomerRating('Customer Rating-Delivery'));
-
-      // Set loading to false once data is fetched
-      setLoading(false);
+    let active = true;
+    const fetchAnalysis = async () => {
+      setLoading(true);
+      setError('');
+      try {
+        const params = selectedMonth ? `?month=${selectedMonth}` : '';
+        const response = await analysisAxios.get(`/${params}`);
+        if (active) {
+          setDailySales(response.data.data.dailySales);
+          setFoodRatings(response.data.data.foodRatings);
+          setServiceRatings(response.data.data.serviceRatings);
+        }
+      } catch (requestError) {
+        console.error('Unable to load sales analysis:', requestError);
+        if (active) {
+          setError(requestError.response?.data?.message || requestError.message || 'Sales analysis could not be loaded.');
+        }
+      } finally {
+        if (active) {
+          setLoading(false);
+        }
+      }
     };
 
-    fetchData();
-  }, [selectedMonth]);
+    fetchAnalysis();
+    return () => {
+      active = false;
+    };
+  }, [selectedMonth, refreshKey]);
 
-  const tripExpensesOptions = {
-    animationEnabled: true,
-    exportEnabled: true,
-    backgroundColor: '#942D2D',
-    color: '#942D2D',
-    theme: 'dark2',
-    title: {
-      text: 'Day wise Count',
-    },
+  const totalOrders = useMemo(
+    () => dailySales.reduce((total, item) => total + Number(item.order_count), 0),
+    [dailySales]
+  );
+  const totalProfit = useMemo(
+    () => dailySales.reduce((total, item) => total + Number(item.profit), 0),
+    [dailySales]
+  );
+  const orderSharePoints = useMemo(() => buildOrderSharePoints(dailySales), [dailySales]);
+
+  const orderCountOptions = {
+    ...chartTheme,
+    title: { text: 'Day-wise Order Share' },
     data: [{
       type: 'pie',
-      indexLabel: '{label}: {y}%',
       startAngle: -90,
-      dataPoints: Object.entries(tripExpensesOccurrences).map(([label, y]) => ({ y, label })),
+      indexLabel: '{label}: {y}%',
+      toolTipContent: '{label}: {y}%',
+      dataPoints: orderSharePoints,
     }],
   };
 
-  const orderAmountOptions = {
-    animationEnabled: true,
-    exportEnabled: true,
-    backgroundColor: '#942D2D',
-    theme: 'dark2',
-    title: {
-      text: 'Day wise Profit',
-    },
+  const profitOptions = {
+    ...chartTheme,
+    title: { text: 'Day-wise Profit' },
     axisY: {
-      title: 'Profit',
+      title: 'Profit (₹)',
+      includeZero: true,
+      gridColor: 'rgba(235, 242, 213, 0.18)',
     },
+    axisX: { title: 'Day of month' },
     data: [{
       type: 'column',
+      color: '#E8B45B',
+      dataPointWidth: 24,
       indexLabel: '{y}',
-      indexLabelFontColor: 'white',
-      dataPoints: Object.entries(orderAmounts).map(([label, y]) => ({ label, y })),
+      indexLabelFontColor: '#EBF2D5',
+      toolTipContent: '{label}: ₹{y}',
+      dataPoints: dailySales.map((item) => ({
+        label: `Day ${item.day}`,
+        y: Number(item.profit),
+      })),
     }],
   };
 
-  const customerRatingOptions = {
-    animationEnabled: true,
-    exportEnabled: true,
-    backgroundColor: '#942D2D',
-    theme: 'dark2',
-    title: {
-      text: 'Customer Rating-Food',
-    },
-    axisY: {
-      title: 'Customer Rating-Food Count',
-    },
-    axisX: {
-      title: 'Customer Rating-Food',
-    },
+  const foodRatingOptions = {
+    ...chartTheme,
+    title: { text: 'Food Ratings' },
+    axisY: { title: 'Number of reviews', includeZero: true },
     data: [{
       type: 'column',
-      indexLabel: '{y}',
-      indexLabelFontColor: 'white',
-      dataPoints: customerRatingData,
+      color: '#D46C5D',
+      dataPointWidth: 30,
+      dataPoints: ratingPoints(foodRatings),
     }],
   };
 
-  const customerRatingDeliveryOptions = {
-    animationEnabled: true,
-    exportEnabled: true,
-    backgroundColor: '#942D2D',
-    theme: 'dark2',
-    title: {
-      text: 'Customer Rating-Delivery',
-    },
-    axisY: {
-      title: 'Sum of Customer Rating-Delivery',
-    },
-    axisX: {
-      title: 'Customer Rating',
-    },
+  const serviceRatingOptions = {
+    ...chartTheme,
+    title: { text: 'Service Ratings' },
+    axisY: { title: 'Number of reviews', includeZero: true },
     data: [{
       type: 'column',
-      indexLabel: '{y}',
-      indexLabelFontColor: 'white',
-      dataPoints: customerRatingDeliveryData,
+      color: '#8AB17D',
+      dataPointWidth: 30,
+      dataPoints: ratingPoints(serviceRatings),
     }],
-  };
-
-  const divStyle = {
-    backgroundColor: '#EBF2D5',
-    padding: '20px',
-    fontFamily: DARKER_GROTESQUE_FONT + ', sans-serif',
-  };
-
-  const selectContainerStyle = {
-    display: 'flex',
-    justifyContent: 'center',
-    margin: '10px 0',
-  };
-
-  const selectStyle = {
-    padding: '8px',
-    borderRadius: '4px',
-    fontSize: '16px',
-    border: '1px solid #ccc',
-    cursor: 'pointer',
-    marginRight: '10px',
-    animation: 'fadeIn 0.5s ease-in-out',
-  };
-
-  const handleMonthChange = (event) => {
-    const selectedMonthValue = parseInt(event.target.value);
-    setSelectedMonth(selectedMonthValue);
   };
 
   return (
-    <div style={divStyle}>
-      <div style={{ 'color': '#942D2D', 'display': 'flex', 'justifyContent': 'center' }}>
-        <h1>Restaurant Data Analysis</h1>
-      </div>
-      <div style={selectContainerStyle}>
-        <label htmlFor="monthDropdown" style={{ 'color': '#942D2D', 'marginRight': '1%', 'fontWeight': '600' }}>Select Month :  </label>
-        <select id="monthDropdown" onChange={handleMonthChange} value={selectedMonth || ''} style={selectStyle}>
-          <option value="">All Months</option>
-          <option value="1">January</option>
-          <option value="2">February</option>
-          <option value="3">March</option>
-          <option value="4">April</option>
-          <option value="5">May</option>
-          <option value="6">June</option>
-          <option value="7">July</option>
-          <option value="8">August</option>
-          <option value="9">September</option>
-          <option value="10">October</option>
-          <option value="11">November</option>
-          <option value="12">December</option>
-        </select>
-      </div>
+    <main className="sales-analysis" style={{
+      backgroundColor: '#EBF2D5',
+      color: '#942D2D',
+      padding: '24px clamp(16px, 5vw, 64px)',
+      fontFamily: `${DARKER_GROTESQUE_FONT}, sans-serif`,
+    }}>
+      <header className="sales-analysis-header">
+        <div>
+          <h1>Live Restaurant Analysis</h1>
+          <p>Sales combine saved payments and current cart activity; ratings are based on saved customer feedback.</p>
+        </div>
+        <label htmlFor="monthDropdown">
+          Month
+          <select
+            id="monthDropdown"
+            onChange={(event) => setSelectedMonth(event.target.value)}
+            value={selectedMonth}
+          >
+            <option value="">All months</option>
+            {['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
+              .map((month, index) => <option key={month} value={index + 1}>{month}</option>)}
+          </select>
+        </label>
+      </header>
+
       {loading ? (
-        <Loader/>
+        <Loader />
+      ) : error ? (
+        <div className="sales-error" role="alert">
+          <p>{error}</p>
+          <button type="button" onClick={() => setRefreshKey((key) => key + 1)}>Retry</button>
+        </div>
       ) : (
         <>
-          <CanvasJSChart options={tripExpensesOptions} onRef={(ref) => (tripExpensesChartRef.current = ref)} />
-          <br></br>
-          <br></br>
-          <CanvasJSChart options={orderAmountOptions} onRef={(ref) => (orderAmountChartRef.current = ref)} />
-          <br></br>
-          <br></br>
-          <CanvasJSChart options={customerRatingOptions} onRef={(ref) => (customerRatingChartRef.current = ref)} />
-          <br></br>
-          <br></br>
-          <CanvasJSChart options={customerRatingDeliveryOptions} onRef={(ref) => (customerRatingDeliveryChartRef.current = ref)} />
+          <section className="sales-summary" aria-label="Sales summary">
+            <article>
+              <span>Orders</span>
+              <strong>{totalOrders}</strong>
+            </article>
+            <article>
+              <span>Profit</span>
+              <strong>₹{totalProfit.toLocaleString('en-IN')}</strong>
+            </article>
+          </section>
+          {totalOrders === 0 && (
+            <p className="sales-empty">No sales data was found for this period.</p>
+          )}
+          <section className="sales-charts">
+            <div className="sales-chart"><CanvasJSChart options={orderCountOptions} /></div>
+            <div className="sales-chart"><CanvasJSChart options={profitOptions} /></div>
+            <div className="sales-chart"><CanvasJSChart options={foodRatingOptions} /></div>
+            <div className="sales-chart"><CanvasJSChart options={serviceRatingOptions} /></div>
+          </section>
         </>
       )}
-    </div>
+    </main>
   );
 }

@@ -1,8 +1,9 @@
 /* Default styles for larger screens */
 .card-t {
-    margin: 25px auto 0px auto;
-    width: 40%;
-    height: 25%;
+    margin: 12px;
+    width: calc(50% - 24px);
+    min-width: 290px;
+    min-height: 100px;
     display: flex;
     flex-direction: row;
     font-family: 'David Libre';
@@ -13,6 +14,7 @@
 
 .wrp-t {
     display: flex;
+    flex: 1;
     flex-direction: column;
     justify-content: space-around;
     align-items: center;
@@ -118,8 +120,22 @@
     display: flex;
     width: 100%;
     flex-direction: row;
-    justify-content: space-around;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px;
     align-items: center;
+}
+
+.admin-category-button {
+    display: flex;
+    flex: 0 1 200px;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+.admin-category-button .buttonComponent {
+    flex: 1 1 80px;
 }
 .but-t:hover {
     background-color: #942D2D;
@@ -162,7 +178,19 @@
 /* Responsive styles for smaller screens */
 @media only screen and (max-width: 800px) {
     .card-t {
-        width: 80%; /* Adjust the width for smaller screens */
+        width: 100%;
+        min-width: 0;
+        margin: 0;
+    }
+
+    .wrp-2-t {
+        padding: 10px;
+        gap: 8px;
+    }
+
+    .admin-category-button {
+        flex: 0 1 160px;
+        flex-wrap: wrap;
     }
 
     .content-t {

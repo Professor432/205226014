@@ -36,9 +36,8 @@ export const Product = (props) => {
         }
       })
       .catch((error) => {
-        // console.log("ERROR MESSAGE ::", error)
         setLoading(false);
-        toast.error("Item is already added in the cart.");
+        toast.error(error.response?.data?.message || "Unable to add item to cart.");
       });
   }
 
