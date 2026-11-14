@@ -4,9 +4,10 @@ import { useNavigate } from "react-router-dom";
 import "./Cart.scss";
 import { cartItems as cartItemsAxios } from "../AxiosCreate";
 import { cart as cartAxios } from "../AxiosCreate";
-import { RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET } from '../../config';
+import { RAZORPAY_KEY_ID } from '../../config';
 import Automn_logo from "../../assets/Automn_logo.png";
 import ButtonComponent from "../Button/ButtonComponent";
+import { isUserAuthenticated } from "../../auth";
 
 
 function Cart() {
@@ -64,14 +65,16 @@ function Cart() {
 
   const handleCheckout = (e) => {
     e.preventDefault();
-    console.log("nik in payment")
+    if (!isUserAuthenticated()) {
+      navigate("/signin");
+      return;
+    }
     if (totalBillAmt === "") {
       alert("Please enter amount");
     }
     else {
       var options = {
         key: RAZORPAY_KEY_ID,
-        key_secret: RAZORPAY_KEY_SECRET,
         amount: totalBillAmt * 100 * 1.05,
         currency: "INR",
         name: "Automn Pay",
@@ -86,8 +89,8 @@ function Cart() {
         },
         timeout: 120,   // pop up closes after 2min
         prefill: {
-          name: "Nik",
-          email: "",
+          name: localStorage.getItem("user_name") || "",
+          email: localStorage.getItem("user_email") || "",
           contact: ""
         },
         notes: {

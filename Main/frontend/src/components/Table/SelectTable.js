@@ -6,6 +6,7 @@ import Typography from "@mui/material/Typography";
 import ButtonComponent from "../Button/ButtonComponent.jsx";
 import Loader from "../Loader/Loader.js";
 import Dialog from "@mui/material/Dialog";
+import { toast } from "react-toastify";
 // import DialogActions from "@mui/material/DialogActions";
 // import DialogContent from "@mui/material/DialogContent";
 // import DialogContentText from "@mui/material/DialogContentText";
@@ -59,7 +60,7 @@ const SelectTable = ({ totalMembers }) => {
         console.log("ERROR MESSAGE ::", error)
         setLoading(false);
       });
-  }, []);
+  }, [totalMembers]);
 
   const handleSelectTable = (tableNumber) => {
     setSelectedTable(tableNumber);
@@ -68,31 +69,22 @@ const SelectTable = ({ totalMembers }) => {
 
   const handleConfirm = async (confirmation) => {
     if (confirmation) {
-      localStorage.setItem("table_id", selectedTable);
-      let data = {};
-      await tableAxios.get(`${selectedTable}`)
-        .then((response) => {
-          setLoading(false)
-          data = response.data.data;
-        })
-        .catch((error) => {
-          console.log("ERROR MESSAGE ::", error)
-          setLoading(false);
-        });
-
-      data = {
-        ...data,
-        "availability_status": "Occupied",
+      setLoading(true);
+      try {
+        const response = await tableAxios.post(`${selectedTable}/book`, { members: totalMembers });
+        const booking = response.data.data;
+        localStorage.setItem("table_id", booking.table_id);
+        localStorage.setItem("table_capacity", booking.capacity);
+        localStorage.setItem("table_user_email", localStorage.getItem("user_email"));
+        toast.success("Table booked successfully.");
+      } catch (error) {
+        const message = error.response && error.response.data
+          ? error.response.data.message
+          : "Unable to book the table. Please try again.";
+        toast.error(message);
+      } finally {
+        setLoading(false);
       }
-      await tableAxios.put(`${selectedTable}`, data)
-        .then((response) => {
-          localStorage.setItem("table_capacity", data.capacity);
-          setLoading(false)
-        })
-        .catch((error) => {
-          console.log("ERROR MESSAGE ::", error)
-          setLoading(false);
-        });
     }
     setShowConfirmation(false);
   };

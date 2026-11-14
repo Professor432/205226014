@@ -1,7 +1,13 @@
 CREATE TABLE IF NOT EXISTS "table"(
                     table_id INT PRIMARY KEY,
                     capacity INT NOT NULL,
-                    availability_status VARCHAR NOT NULL);
+                    availability_status VARCHAR NOT NULL,
+                    booked_by VARCHAR REFERENCES "User"(user_email));
+
+ALTER TABLE "table" ADD COLUMN IF NOT EXISTS booked_by VARCHAR REFERENCES "User"(user_email);
+
+CREATE UNIQUE INDEX IF NOT EXISTS unique_active_table_booking_per_user
+    ON "table"(booked_by) WHERE booked_by IS NOT NULL;
 
 select*from "table";
 

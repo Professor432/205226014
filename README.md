@@ -103,3 +103,10 @@ Node.js + Express Backend
        v                v
 PostgreSQL       Background Worker
 Database
+```
+
+## Customer authentication
+
+The Node backend reads its PostgreSQL connection and JWT signing key from `Main/backend-node/.env`. Copy `.env.example` to `.env`, set `POSTGRES_URL`, and set `ACCESS_TOKEN_SECRET` to a random secret of at least 32 bytes. Do not commit `.env`.
+
+Start the backend, then request `http://localhost:5555/` once to initialize or migrate the user and table schema. Customer registration and login are available from the React app; passwords are stored as scrypt hashes. Existing user rows created before password authentication have no password hash and must be assigned one before login.

@@ -4,7 +4,8 @@ import Dialog from "@mui/material/Dialog";
 import ButtonComponent from "../Button/ButtonComponent";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
-import { cartItems, table as tableAxios } from "../AxiosCreate";
+import { table as tableAxios } from "../AxiosCreate";
+import { toast } from "react-toastify";
 
 const styles = {
   popupContainer: {
@@ -33,40 +34,26 @@ const styles = {
 
 const LeaveTable = () => {
 
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(true);
 
   const navigate = useNavigate();
 
   const vacantTable = async () => {
-    setOpen(false);
-    const data = {
-      "table_id": localStorage.getItem("table_id"),
-      "capacity": localStorage.getItem("table_capacity"),
-      "availability_status": "Available"
+    const tableId = localStorage.getItem("table_id");
+    setLoading(true);
+    try {
+      await tableAxios.post(`/${tableId}/release`);
+      localStorage.removeItem("table_id");
+      localStorage.removeItem("table_capacity");
+      localStorage.removeItem("table_user_email");
+      setOpen(false);
+    } catch (error) {
+      console.error("Unable to release table:", error);
+      toast.error("Unable to release the table. Please try again.");
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(true)
-    await tableAxios.put(`/${localStorage.getItem("table_id")}`, data)
-      .then(async (response) => {
-        // console.log(response.data.data)
-        localStorage.removeItem("table_id");
-        localStorage.removeItem("table_capacity");
-        console.log("table vacant successfull..!!");
-        
-        await cartItems.delete(`/cart_table/${localStorage.getItem("table_id")}`)
-          .then((response) => {
-            setLoading(false);
-          })
-          .catch((error) => {
-            console.log("ERROR MESSAGE ::", error)
-            setLoading(false);
-          });
-      })
-      .catch((error) => {
-        console.log("ERROR MESSAGE ::", error)
-        setLoading(false);
-      });
   };
 
 
@@ -96,7 +83,7 @@ const LeaveTable = () => {
             Do you want to leave this Table?{" "}
           </Typography>
           <div>
-            <ButtonComponent color={"primary"} message={"Yes"} func={vacantTable} />
+            <ButtonComponent color={"primary"} message={loading ? "Processing..." : "Yes"} func={vacantTable} />
             <ButtonComponent color={"secondary"} message={"No, continue ordering"} func={() => navigate('/menu')} />
           </div>
         </form>

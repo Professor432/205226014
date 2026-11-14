@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import AppBar from "@mui/material/AppBar";
 import Box from "@mui/material/Box";
 import Toolbar from "@mui/material/Toolbar";
@@ -13,6 +13,7 @@ import { useMediaQuery } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import "./Header.css"
 import Automn_logo from "../../assets/Automn_logo.png"
+import { notifyAuthChange } from "../../auth";
 
 export default function Header() {
   const textColor = "#942d2d";
@@ -23,10 +24,24 @@ export default function Header() {
   };
 
   const isSmallScreen = useMediaQuery("(max-width:1000px)");
-  const isAdmin = localStorage.getItem("isAdminAuth") === "true";
   const navigate = useNavigate();
 
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(localStorage.getItem("isAdminAuth") === "true");
+  const [isUser, setIsUser] = useState(localStorage.getItem("isUserAuth") === "true");
+
+  useEffect(() => {
+    const syncAuth = () => {
+      setIsAdmin(localStorage.getItem("isAdminAuth") === "true");
+      setIsUser(localStorage.getItem("isUserAuth") === "true");
+    };
+    window.addEventListener("auth-change", syncAuth);
+    window.addEventListener("storage", syncAuth);
+    return () => {
+      window.removeEventListener("auth-change", syncAuth);
+      window.removeEventListener("storage", syncAuth);
+    };
+  }, []);
 
   const handleDrawerOpen = () => {
     setDrawerOpen(true);
@@ -36,13 +51,21 @@ export default function Header() {
     setDrawerOpen(false);
   };
 
-  const handleAdminLogin = () => {
-    if (localStorage.getItem("isAdminAuth")) {
+  const handleAuthButton = () => {
+    if (isAdmin || isUser) {
       localStorage.removeItem("isAdminAuth");
+      localStorage.removeItem("isUserAuth");
       localStorage.removeItem("accessToken");
+      localStorage.removeItem("user_email");
+      localStorage.removeItem("user_name");
+      notifyAuthChange();
+      navigate("/");
+      return;
     }
-    navigate("/userlogin");
+    navigate("/signin");
   };
+
+  const authButtonLabel = isAdmin || isUser ? "LogOut" : "Login/SignUp";
 
   return (
     <Box sx={{ marginBottom: 0, flexGrow: 1 }}>
@@ -184,9 +207,7 @@ export default function Header() {
 
           {!isSmallScreen && (
             // "Login/Signup" and "Logout" buttons for larger screens
-            <ButtonComponent color={"tertiary"} message={!localStorage.getItem("isAdminAuth")
-            ? "Login/SignUp"
-            : "LogOut"} func={handleAdminLogin} />
+            <ButtonComponent color={"tertiary"} message={authButtonLabel} func={handleAuthButton} />
           )}
         </Toolbar>
       </AppBar>
@@ -247,9 +268,7 @@ export default function Header() {
           </ListItem>
           {/* "Login/Signup" and "Logout" buttons for small screens */}
           <ListItem>
-          <ButtonComponent color={"tertiary"} message={!localStorage.getItem("isAdminAuth")
-            ? "Login/SignUp"
-            : "LogOut"} func={handleAdminLogin} />
+          <ButtonComponent color={"tertiary"} message={authButtonLabel} func={handleAuthButton} />
           </ListItem>
         </List>
       </Drawer>

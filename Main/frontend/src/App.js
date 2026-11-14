@@ -1,5 +1,5 @@
 import './App.css';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import React from "react";
 import AdminCategory from './components/AdminCategory/AdminCategory'
 import Header from './components/Header/Header'
@@ -23,6 +23,23 @@ import Orders from './components/AdminOrders/Orders';
 import UserSignIn from './components/Login/MainContentSignIn';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import { isUserAuthenticated } from './auth';
+
+function RequireUser({ children }) {
+  const [authenticated, setAuthenticated] = React.useState(isUserAuthenticated());
+
+  React.useEffect(() => {
+    const syncAuth = () => setAuthenticated(isUserAuthenticated());
+    window.addEventListener("auth-change", syncAuth);
+    window.addEventListener("storage", syncAuth);
+    return () => {
+      window.removeEventListener("auth-change", syncAuth);
+      window.removeEventListener("storage", syncAuth);
+    };
+  }, []);
+
+  return authenticated ? children : <Navigate to="/signin" replace />;
+}
 
 function App() {
 
@@ -32,14 +49,11 @@ function App() {
           <Router>
             <Routes>
               <Route path='/menu' element={<><Header/> <RestaurantMenu/> <Footer/></>} />
-              <Route path='/cart' element={<><Header/> <Cart/> <Footer/></>} />
-              { localStorage.getItem("table_id") ? 
-                (<Route path='/tablebooking' element={<><Header/> <BookedTable/> <Footer/></>} />) :
-                (<Route path='/tablebooking' element={<><Header/> <EnterMembers/> <Footer/></>} />)
-              }
+              <Route path='/cart' element={<RequireUser><Header/> <Cart/> <Footer/></RequireUser>} />
+              <Route path='/tablebooking' element={<RequireUser>{localStorage.getItem("table_id") ? <><Header/> <BookedTable/> <Footer/></> : <><Header/> <EnterMembers/> <Footer/></>}</RequireUser>} />
               <Route path='/' element={ <><Header/> <Home userName="User" /> <Footer/></>} />
               <Route path='/aboutus' element={<><Header/> <About/> <Footer/></>} />
-              <Route path='/feedback' element={<Feedback />} />
+              <Route path='/feedback' element={<RequireUser><Feedback /></RequireUser>} />
               <Route path='/userlogin' element={<><UserLogin /> <Footer/></>} />
               <Route path='/signin' element={<><Header /><UserSignIn /> <Footer /></>} />
               <Route path='/adminlogin' element={<AdminLogin />} />            

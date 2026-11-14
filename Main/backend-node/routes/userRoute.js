@@ -1,84 +1,122 @@
 const express = require("express");
 const pool = require("../db.js");
-// const jwt = require('jsonwebtoken');
-require('dotenv').config();
+const crypto = require("crypto");
+const { promisify } = require("util");
+const jwt = require("jsonwebtoken");
+const authenticateUser = require("../middlewares/userAuth.js");
+require("dotenv").config();
 
 const userRoute = express.Router();
+const scrypt = promisify(crypto.scrypt);
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
+const hashPassword = async (password) => {
+    const salt = crypto.randomBytes(16).toString("hex");
+    const hash = await scrypt(password, salt, 64);
+    return `scrypt$${salt}$${hash.toString("hex")}`;
+};
 
-userRoute.post("/", async (req, res) => {
-    // console.log(req.body)
-    try {
-        if (!req.body.user_name || !req.body.user_email) {
-            return res.status(400).json({ message: "All fields are mandatory !!" })
-        }
-        const newUser = await pool.query("INSERT INTO \"User\"(user_name,user_email) VALUES($1,$2)",
-            [req.body.user_name, req.body.user_email]);
-        res.status(201).json({
-            message: "User created successfully !!",
-            // data: newUser
-        })
-    } catch (error) {
-        console.log("ERROR MESSAGE ::", error.message);
-        res.status(500).json({ message: "Can't create a new User!!" });
+const verifyPassword = async (password, storedHash) => {
+    const [algorithm, salt, hashHex] = (storedHash || "").split("$");
+    if (algorithm !== "scrypt" || !salt || !hashHex || !/^[a-f0-9]{128}$/i.test(hashHex)) {
+        return false;
     }
-});
 
-// get all user
-userRoute.get("/", async (req, res) => {
+    const expectedHash = Buffer.from(hashHex, "hex");
+    const actualHash = await scrypt(password, salt, expectedHash.length);
+    return crypto.timingSafeEqual(actualHash, expectedHash);
+};
+
+const createUserToken = (user) => jwt.sign(
+    { user_email: user.user_email, user_name: user.user_name, role: "user" },
+    process.env.ACCESS_TOKEN_SECRET,
+    { expiresIn: "1d" }
+);
+
+userRoute.post("/register", async (req, res) => {
     try {
-        const { userName } = req.query;
-        const allUsers = await pool.query(`SELECT*FROM \"User\" ORDER BY \"user_name\" ASC;`);
-        return res.status(200).json({
-            message: "All users received !!",
-            count: allUser.rows.length,
-            data: allUser.rows
+        const userName = typeof req.body.user_name === "string" ? req.body.user_name.trim() : "";
+        const userEmail = typeof req.body.user_email === "string" ? req.body.user_email.trim().toLowerCase() : "";
+        const password = typeof req.body.password === "string" ? req.body.password : "";
+
+        if (!userName || !userEmail || !password) {
+            return res.status(400).json({ message: "Name, email, and password are required." });
+        }
+        if (userName.length > 80 || !EMAIL_PATTERN.test(userEmail) || userEmail.length > 254) {
+            return res.status(400).json({ message: "Enter a valid name and email address." });
+        }
+        if (password.length < 8 || password.length > 128) {
+            return res.status(400).json({ message: "Password must be between 8 and 128 characters." });
+        }
+        if (!process.env.ACCESS_TOKEN_SECRET) {
+            return res.status(503).json({ message: "Authentication is not configured on the server." });
+        }
+
+        const passwordHash = await hashPassword(password);
+        const result = await pool.query(
+            'INSERT INTO "User"(user_name, user_email, password_hash) VALUES($1, $2, $3) RETURNING user_name, user_email',
+            [userName, userEmail, passwordHash]
+        );
+        const user = result.rows[0];
+        return res.status(201).json({
+            message: "Account created successfully.",
+            user,
+            accessToken: createUserToken(user)
         });
     } catch (error) {
-        console.log("ERROR MESSAGE ::", error.message)
-        res.status(500).json({ message: "Can't get all users!!" })
-    }
-});
-
-
-userRoute.get("/:user_email", async (req, res) => {
-    try {
-        const { user_email } = req.params
-        const oneUser = await pool.query("SELECT * FROM \"User\" WHERE user_email = $1", [user_email]);
-        // console.log(oneUser.rows)
-        if (!oneUser.rows[0]) {
-            return res.status(404).json({ message: "User not found !!" })
+        if (error.code === "23505") {
+            return res.status(409).json({ message: "An account with this email already exists." });
         }
-        // const payLoad = oneUser.rows[0];
-        // const accessToken = jwt.sign(payLoad, process.env.ACCESS_TOKEN_SECRET)
-        return res.status(200).json({
-            message: "User received !!",
-            data: oneUser.rows[0],
-            // accessToken: accessToken
-        })
-    } catch (error) {
-        console.log("ERROR MESSAGE ::", error.message)
-        res.status(500).json({ message: "Can't get the User!!" })
+        console.error("User registration failed:", error.message);
+        return res.status(500).json({ message: "Unable to create the account." });
     }
 });
 
-
-userRoute.delete("/:user_email", async (req, res) => {
+userRoute.post("/login", async (req, res) => {
     try {
-        const { user_email } = req.params
-        const deleteUser = await pool.query("DELETE FROM \"User\" WHERE user_email = $1;", [user_email]);
-        if (deleteUser.rowCount == 0) {
-            return res.status(404).json({ message: "User not found !!" });
+        const userEmail = typeof req.body.user_email === "string" ? req.body.user_email.trim().toLowerCase() : "";
+        const password = typeof req.body.password === "string" ? req.body.password : "";
+        if (!userEmail || !password) {
+            return res.status(400).json({ message: "Email and password are required." });
         }
+        if (!process.env.ACCESS_TOKEN_SECRET) {
+            return res.status(503).json({ message: "Authentication is not configured on the server." });
+        }
+
+        const result = await pool.query(
+            'SELECT user_name, user_email, password_hash FROM "User" WHERE LOWER(user_email) = $1',
+            [userEmail]
+        );
+        const user = result.rows[0];
+        if (!user || !(await verifyPassword(password, user.password_hash))) {
+            return res.status(401).json({ message: "Email or password is incorrect." });
+        }
+
         return res.status(200).json({
-            message: "Deleted successfully !!",
-            // data: deleteUser
-        })
+            message: "Login successful.",
+            user: { user_name: user.user_name, user_email: user.user_email },
+            accessToken: createUserToken(user)
+        });
     } catch (error) {
-        console.log("ERROR MESSAGE ::", error.message)
-        res.status(500).json({ message: "Can't delete!!" })
+        console.error("User login failed:", error.message);
+        return res.status(500).json({ message: "Unable to log in." });
     }
 });
 
+userRoute.get("/me", authenticateUser, async (req, res) => {
+    try {
+        const result = await pool.query(
+            'SELECT user_name, user_email FROM "User" WHERE user_email = $1',
+            [req.user.user_email]
+        );
+        if (!result.rows[0]) {
+            return res.status(404).json({ message: "User not found." });
+        }
+        return res.status(200).json({ user: result.rows[0] });
+    } catch (error) {
+        console.error("Unable to retrieve user:", error.message);
+        return res.status(500).json({ message: "Unable to retrieve user." });
+    }
+});
 
-module.exports = userRouter;
+module.exports = userRoute;

@@ -1,11 +1,14 @@
 const express = require("express");
 const pool = require("../db.js")
 const { v4: uuidv4 } = require('uuid');
+const authenticateAdmin = require("../middlewares/auth.js");
+const authenticateUser = require("../middlewares/userAuth.js");
+const requireTableOwnership = require("../middlewares/tableOwnership.js");
 
 const cartRouter = express.Router();
 
 
-cartRouter.post("/", async (req, res) => {
+cartRouter.post("/", authenticateUser, requireTableOwnership, async (req, res) => {
     // console.log(req.body)
     try {
         if (!req.body.table_id || !req.body.total_bill_amount || !req.body.total_bill_profit || !req.body.date_time) {
@@ -24,7 +27,7 @@ cartRouter.post("/", async (req, res) => {
 });
 
 // get all carts ordered by date_time
-cartRouter.get("/", async (req, res) => {
+cartRouter.get("/", authenticateAdmin, async (req, res) => {
     try {
         const allCarts = await pool.query(`SELECT*FROM cart ORDER BY table_id ASC, date_time DESC`);
         return res.status(200).json({
@@ -39,7 +42,7 @@ cartRouter.get("/", async (req, res) => {
 });
 
 // get Carts ordered by table_id
-cartRouter.get("/cart_table", async (req, res) => {
+cartRouter.get("/cart_table", authenticateAdmin, async (req, res) => {
     try {
         const allCarts = await pool.query(`SELECT*FROM cart ORDER BY table_id DESC`);
         return res.status(200).json({
@@ -54,7 +57,7 @@ cartRouter.get("/cart_table", async (req, res) => {
 });
 
 // get carts based on table_id
-cartRouter.get("/:table_id", async (req, res) => {
+cartRouter.get("/:table_id", authenticateUser, requireTableOwnership, async (req, res) => {
     try {
         const { table_id } = req.params
         const oneCart = await pool.query("SELECT * FROM cart WHERE table_id = $1", [table_id]);
@@ -73,7 +76,7 @@ cartRouter.get("/:table_id", async (req, res) => {
 });
 
 //  put on basis of table_id
-cartRouter.put("/:table_id", async (req, res) => {
+cartRouter.put("/:table_id", authenticateUser, requireTableOwnership, async (req, res) => {
     try {
         if (!req.body.table_id || !req.body.total_bill_amount || !req.body.total_bill_profit || !req.body.date_time) {
             return res.status(400).json({ message: "All fields are mandatory !!" })
@@ -95,7 +98,7 @@ cartRouter.put("/:table_id", async (req, res) => {
 });
 
 // delete based on table_id
-cartRouter.delete("/:table_id", async (req, res) => {
+cartRouter.delete("/:table_id", authenticateUser, requireTableOwnership, async (req, res) => {
     try {
         const { table_id } = req.params
         const deleteCart = await pool.query("DELETE FROM cart WHERE table_id = $1;", [table_id]);

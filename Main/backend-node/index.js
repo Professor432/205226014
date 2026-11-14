@@ -11,7 +11,7 @@ const feedbackRouter = require("./routes/feedbackRoute.js");
 const adminRouter = require("./routes/adminRoute.js");
 const cartRouter = require("./routes/cartRoute.js");
 const cartItemsRouter = require("./routes/cartItemsRoute.js");
-// const userRouter = require("./routes/userRoute.js");
+const userRouter = require("./routes/userRoute.js");
 // const ordersRouter = require("./routes/ordersRoute.js");
 // const paymentRouter = require("./routes/paymentRoute.js");
 
@@ -30,7 +30,7 @@ app.use("/feedback",feedbackRouter)
 app.use("/admin",adminRouter)
 app.use("/cart",cartRouter)
 app.use("/cart_items",cartItemsRouter)
-// app.use("/users",userRouter)
+app.use("/users",userRouter)
 // app.use("/orders",ordersRouter)
 // app.use("/payment",paymentRouter)
 
@@ -42,6 +42,11 @@ app.listen(SERVER_PORT, () => {
 
 app.get('/', async (req, res) => {
     try {
+        await pool.query(`CREATE TABLE IF NOT EXISTS "${RELATION10}"(
+                    user_email VARCHAR PRIMARY KEY,
+                    user_name VARCHAR NOT NULL,
+                    password_hash VARCHAR);`);
+        await pool.query(`ALTER TABLE "${RELATION10}" ADD COLUMN IF NOT EXISTS password_hash VARCHAR;`);
         const categoryRelation = await pool.query(`CREATE TABLE IF NOT EXISTS \"${RELATION1}\"(
                     category_id VARCHAR PRIMARY KEY, 
                     \"categoryName\" VARCHAR NOT NULL UNIQUE);`);
@@ -58,7 +63,10 @@ app.get('/', async (req, res) => {
         const tableRelation = await pool.query(`CREATE TABLE IF NOT EXISTS \"${RELATION3}\"(
                     table_id INT PRIMARY KEY, 
                     capacity INT NOT NULL, 
-                    availability_status VARCHAR NOT NULL);`);
+                    availability_status VARCHAR NOT NULL,
+                    booked_by VARCHAR REFERENCES "${RELATION10}"(user_email));`);
+        await pool.query(`ALTER TABLE "${RELATION3}" ADD COLUMN IF NOT EXISTS booked_by VARCHAR REFERENCES "${RELATION10}"(user_email);`);
+        await pool.query(`CREATE UNIQUE INDEX IF NOT EXISTS unique_active_table_booking_per_user ON "${RELATION3}"(booked_by) WHERE booked_by IS NOT NULL;`);
         const feedbackRelation = await pool.query(`CREATE TABLE IF NOT EXISTS ${RELATION4}(
                     feedback_id VARCHAR PRIMARY KEY, 
                     starate1 INT, 
@@ -99,9 +107,6 @@ app.get('/', async (req, res) => {
                         total_profit INT NOT NULL,
                         date_time TIMESTAMP NOT NULL,
                         PRIMARY KEY (order_id, menu_name) );`);
-        // const userRelation = await pool.query(`CREATE TABLE IF NOT EXISTS \"${RELATION10}\"(
-        //                 user_email VARCHAR PRIMARY KEY, 
-        //                 user_name VARCHAR NOT NULL);`);
         return res.status(234).send("Welcome to PERN !!");        
     } catch (error) {
         console.log("ERROR MESSAGE ::", error.message)

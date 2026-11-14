@@ -7,14 +7,22 @@ const authenticateToken = (req, res, next) => {
     // console.log(authHeader)
     if (authHeader) {
         const accessToken = authHeader.split(' ')[1]
+        if (!accessToken) {
+            return res.status(401).json({ message: "Unauthorized !!" })
+        }
+        if (!process.env.ACCESS_TOKEN_SECRET) {
+            return res.status(503).json({ message: "Authentication is not configured on the server." })
+        }
         // console.log(accessToken)
         jwt.verify(accessToken, process.env.ACCESS_TOKEN_SECRET, (err, payload) => {
-            // console.log("ERROR MESSAGE ::",err)
             if (err) {
-                // meaning that you have accessToken but it is not valid(might be expired)
                 return res.status(403).json({ message: "Invalid accessToken !!" })
             }
-            else next()
+            if (!payload || !payload.admin_id) {
+                return res.status(403).json({ message: "Administrator access is required." })
+            }
+            req.admin = payload;
+            return next()
         })
     }
     else return res.status(401).json({ message: "Unauthorized !!" })

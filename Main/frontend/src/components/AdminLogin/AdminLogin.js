@@ -5,6 +5,7 @@ import { admin as adminAxios } from '../AxiosCreate';
 import { toast } from 'react-toastify';
 import './AdminLogin.scss';
 import 'react-toastify/dist/ReactToastify.css';
+import { notifyAuthChange } from "../../auth";
 
 
 export default function AdminLogin() {
@@ -34,10 +35,14 @@ export default function AdminLogin() {
                     setLoading(false);
                     // enqueueSnackbar('Admin Logged In successfully', { variant: 'success' });
                     localStorage.setItem("isAdminAuth", true)
+                    localStorage.removeItem("isUserAuth");
+                    localStorage.removeItem("user_email");
+                    localStorage.removeItem("user_name");
                     // console.log(response.data.accessToken)
                     // Here, i store the accessToken in localStorage to access it from "deleteBook" route
                     // However, it is not a good practice to do so
                     localStorage.setItem("accessToken", response.data.accessToken)
+                    notifyAuthChange();
                     toast.success("Admin login successful.");
                     navigate('/');
                 }

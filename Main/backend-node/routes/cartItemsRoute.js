@@ -1,11 +1,14 @@
 const express = require("express");
 const pool = require("../db.js")
 const { v4: uuidv4 } = require('uuid');
+const authenticateAdmin = require("../middlewares/auth.js");
+const authenticateUser = require("../middlewares/userAuth.js");
+const requireTableOwnership = require("../middlewares/tableOwnership.js");
 
 const cartItemRouter = express.Router();
 
 
-cartItemRouter.post("/", async (req, res) => {
+cartItemRouter.post("/", authenticateUser, requireTableOwnership, async (req, res) => {
     // console.log(req.body)
     try {
         if (!req.body.table_id || !req.body.menu_name || !req.body.quantity || !req.body.item_price || !req.body.total_price || !req.body.item_profit || !req.body.total_profit || !req.body.date_time) {
@@ -33,7 +36,7 @@ cartItemRouter.post("/", async (req, res) => {
 });
 
 // get all CartItems ordered by table_id
-cartItemRouter.get("/", async (req, res) => {
+cartItemRouter.get("/", authenticateAdmin, async (req, res) => {
     try {
         const allCartItems = await pool.query(`SELECT*FROM cart_items ORDER BY table_id ASC, menu_name ASC;`);
         return res.status(200).json({
@@ -48,7 +51,7 @@ cartItemRouter.get("/", async (req, res) => {
 });
 
 // get CartItems of particular table
-cartItemRouter.get("/cart_table/:table_id", async (req, res) => {
+cartItemRouter.get("/cart_table/:table_id", authenticateUser, requireTableOwnership, async (req, res) => {
     try {
         const {table_id} = req.params;
         const allCartItems = await pool.query(`SELECT*FROM cart_items WHERE table_id = $1 ORDER BY menu_name ASC ;`,[table_id]);
@@ -64,7 +67,7 @@ cartItemRouter.get("/cart_table/:table_id", async (req, res) => {
 });
 
 // get cart_items based on menu_name
-cartItemRouter.get("/cart_menu_name/:menu_name", async (req, res) => {
+cartItemRouter.get("/cart_menu_name/:menu_name", authenticateAdmin, async (req, res) => {
     try {
         const { menu_name } = req.params
         const allCartItem = await pool.query("SELECT * FROM cart_items WHERE menu_name = $1 ORDER BY menu_name ASC;", [menu_name]);
@@ -83,7 +86,7 @@ cartItemRouter.get("/cart_menu_name/:menu_name", async (req, res) => {
 });
 
 // get cart_item based on table_id and menu_name
-cartItemRouter.get("/:table_id/:menu_name", async (req, res) => {
+cartItemRouter.get("/:table_id/:menu_name", authenticateUser, requireTableOwnership, async (req, res) => {
     try {
         const { table_id, menu_name } = req.params
         const allCartItem = await pool.query("SELECT * FROM cart_items WHERE menu_name = $1 AND table_id = $2 ORDER BY menu_name ASC;", [menu_name,table_id]);
@@ -102,7 +105,7 @@ cartItemRouter.get("/:table_id/:menu_name", async (req, res) => {
 });
 
 
-cartItemRouter.put("/", async (req, res) => {
+cartItemRouter.put("/", authenticateUser, requireTableOwnership, async (req, res) => {
     try {
         if (!req.body.table_id || !req.body.menu_name || !req.body.quantity || !req.body.item_price || !req.body.total_price || !req.body.item_profit || !req.body.total_profit || !req.body.date_time) {
             return res.status(400).json({ message: "All fields are mandatory !!" })
@@ -132,7 +135,7 @@ cartItemRouter.put("/", async (req, res) => {
 });
 
 
-cartItemRouter.delete("/cart_table/:table_id", async (req, res) => {
+cartItemRouter.delete("/cart_table/:table_id", authenticateUser, requireTableOwnership, async (req, res) => {
     // console.log("nik in delete1");
     try {
         const { table_id } = req.params
@@ -157,7 +160,7 @@ cartItemRouter.delete("/cart_table/:table_id", async (req, res) => {
 });
 
 // delete a particular menu_item from cart
-cartItemRouter.delete("/:table_id/:menu_name", async (req, res) => {
+cartItemRouter.delete("/:table_id/:menu_name", authenticateUser, requireTableOwnership, async (req, res) => {
     // console.log("nik in delete2");
     try {
         const { table_id, menu_name } = req.params

@@ -6,35 +6,25 @@ import {API_URL} from '../config.js';
 // const SERVER_SOCKET_ADDRESS = "http://" + SERVER_HOST + ":" + SERVER_PORT + "/";
 const SERVER_SOCKET_ADDRESS = API_URL;
 
+const createApi = (resource) => {
+    const client = axios.create({
+        baseURL: SERVER_SOCKET_ADDRESS + resource
+    });
+    client.interceptors.request.use((config) => {
+        const accessToken = localStorage.getItem("accessToken");
+        if (accessToken) {
+            config.headers.Authorization = `Bearer ${accessToken}`;
+        }
+        return config;
+    });
+    return client;
+};
 
-export const category = axios.create({
-    baseURL: SERVER_SOCKET_ADDRESS + "category"
-});
-
-export const restaurantMenu = axios.create({
-    baseURL: SERVER_SOCKET_ADDRESS + "menu"
-});
-
-export const cart = axios.create({
-    baseURL: SERVER_SOCKET_ADDRESS + "cart"
-});
-
-export const table = axios.create({
-    baseURL: SERVER_SOCKET_ADDRESS + "table"
-});
-
-export const cartItems = axios.create({
-    baseURL: SERVER_SOCKET_ADDRESS + "cart_items"
-});
-
-export const feedback = axios.create({
-    baseURL: SERVER_SOCKET_ADDRESS + "feedback"
-});
-
-export const admin = axios.create({
-    baseURL: SERVER_SOCKET_ADDRESS + "admin"
-});
-
-export const users = axios.create({
-    baseURL: SERVER_SOCKET_ADDRESS + "users"
-});
+export const category = createApi("category");
+export const restaurantMenu = createApi("menu");
+export const cart = createApi("cart");
+export const table = createApi("table");
+export const cartItems = createApi("cart_items");
+export const feedback = createApi("feedback");
+export const admin = createApi("admin");
+export const users = createApi("users");
