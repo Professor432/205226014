@@ -1,112 +1,255 @@
 # Restaurant Automation and Order Management System
 
-## Project Overview
+A web-based restaurant management application developed to simplify restaurant operations such as menu management, table management, customer orders, cart management, payments and feedback.
 
-The Restaurant Automation and Order Management System is a web-based application designed to automate major restaurant operations such as menu management, customer ordering, kitchen order processing, billing, inventory management, and administrative reporting.
+The project demonstrates the practical application of **Distributed Computing and Cloud Computing** concepts through a three-tier architecture and cloud deployment.
 
-The system uses a distributed application architecture in which the frontend, backend, and database operate as separate components and communicate through APIs.
+## 🌐 Live Application
 
-## Problem Statement
+- **Frontend:** https://restaurant-management-frontend-iota.vercel.app/
+- **Backend API:** https://restaurant-management-backend-ihdt.onrender.com/
+- **GitHub Repository:** https://github.com/Professor432/205226014
 
-Traditional restaurant operations may involve manual handling of customer orders, communication between the kitchen and cashier, billing, and inventory management. These processes can result in delays, incorrect order handling, difficulty tracking order status, and inefficient inventory management.
+## 🏗️ System Architecture
 
-This project aims to develop an integrated restaurant automation system that connects these operations through a centralized web application.
-
-## Objectives
-
-- Develop a web-based restaurant automation system.
-- Automate customer ordering and order management.
-- Provide a dedicated kitchen dashboard for processing orders.
-- Automate billing and payment recording.
-- Automate inventory updates based on completed orders.
-- Provide role-based access for different users.
-- Deploy the application using cloud services.
-- Demonstrate communication between distributed application components.
-- Evaluate application performance under different workloads.
-
-## Users
-
-The system supports the following users:
-
-- Customer
-- Kitchen Staff
-- Cashier
-- Administrator
-
-## Main Features
-
-### Customer
-
-- Registration and login
-- Browse restaurant menu
-- Search and filter menu items
-- Add items to cart
-- Place orders
-- Track order status
-- View order history
-- View bills
-
-### Kitchen Staff
-
-- View incoming orders
-- Accept orders
-- Start order preparation
-- Mark orders as ready
-- Complete orders
-
-### Cashier
-
-- View customer orders
-- View bills
-- Record payments
-- Complete orders
-
-### Administrator
-
-- Manage menu items
-- Manage food categories
-- Manage inventory
-- Manage users
-- View orders
-- View sales information
-- Monitor low-stock items
-- View reports
-
-## Order Workflow
-
-The order lifecycle is:
-
-PLACED → CONFIRMED → PREPARING → READY → COMPLETED
-
-## System Architecture
-
-The system follows a distributed three-tier architecture consisting of:
-
-1. Presentation Layer - React frontend
-2. Application Layer - Node.js and Express backend
-3. Data Layer - PostgreSQL database
-
-A background processing component may be added for asynchronous tasks.
+The application follows a **Three-Tier Architecture** with separately deployed frontend, backend and database components.
 
 ```text
-Customer / Staff
-       |
-       v
-React Frontend
-       |
-       | REST API / HTTPS
-       v
-Node.js + Express Backend
-       |
-       +----------------+
-       |                |
-       v                v
-PostgreSQL       Background Worker
-Database
+             Users / Admin
+                   |
+                   v
+          React Frontend
+              (Vercel)
+                   |
+             REST API
+             HTTPS/HTTP
+                   |
+                   v
+        Node.js + Express Backend
+               (Render)
+                   |
+              PostgreSQL
+                (Neon)
 ```
 
-## Customer authentication
+### Architecture Components
 
-The Node backend reads its PostgreSQL connection and JWT signing key from `Main/backend-node/.env`. Copy `.env.example` to `.env`, set `POSTGRES_URL`, and set `ACCESS_TOKEN_SECRET` to a random secret of at least 32 bytes. Do not commit `.env`.
+| Layer | Technology | Deployment |
+|---|---|---|
+| Presentation Layer | React.js | Vercel |
+| Application Layer | Node.js, Express.js | Render |
+| Data Layer | PostgreSQL | Neon |
 
-Start the backend, then request `http://localhost:5555/` once to initialize or migrate the user and table schema. Customer registration and login are available from the React app; passwords are stored as scrypt hashes. Existing user rows created before password authentication have no password hash and must be assigned one before login.
+The frontend communicates with the backend using REST APIs. The backend processes requests and interacts with the PostgreSQL database.
+
+The backend follows a **modular monolithic architecture**, with separate route modules for different application functionalities.
+
+## ✨ Key Features
+
+- User registration and authentication
+- Menu and category management
+- Restaurant table management
+- Shopping cart management
+- Customer order placement and management
+- Payment-related functionality
+- Customer feedback management
+- Admin operations
+- Order and application data analysis
+
+## 🛠️ Technology Stack
+
+### Frontend
+- React.js
+- JavaScript
+- HTML
+- CSS
+
+### Backend
+- Node.js
+- Express.js
+- REST APIs
+- JSON Web Token (JWT) authentication
+
+### Database
+- PostgreSQL
+- Neon Cloud Database
+- Node PostgreSQL (`pg`) package
+
+### Cloud and Deployment
+- **Vercel:** Frontend hosting
+- **Render:** Backend hosting
+- **Neon:** Managed PostgreSQL database
+
+### Performance Testing
+- Apache JMeter 5.6.3
+
+## ☁️ Cloud Deployment
+
+The application is deployed using three cloud services.
+
+### 1. Frontend Deployment – Vercel
+
+- The React frontend is deployed on Vercel.
+- The frontend project uses the `Main/frontend` directory.
+- The production build is generated using `npm run build`.
+- The backend API URL is configured through the environment variable:
+
+```env
+REACT_APP_API_URL=https://restaurant-management-backend-ihdt.onrender.com/
+```
+
+### 2. Backend Deployment – Render
+
+- The Node.js and Express backend is deployed as a web service on Render.
+- The backend project uses the `Main/backend-node` directory.
+- Build command:
+
+```bash
+npm install
+```
+
+- Start command:
+
+```bash
+npm start
+```
+
+- The backend uses environment variables for database connectivity and authentication.
+
+### 3. Database Deployment – Neon
+
+- PostgreSQL is hosted using Neon.
+- The database is deployed in the AWS Asia Pacific (Singapore) region.
+- The backend connects to the database using the PostgreSQL connection configuration.
+
+## 🔐 Environment Variables
+
+Configure the following environment variables in the respective deployment platforms.
+
+### Backend – Render
+
+```env
+POSTGRES_URL=your_postgresql_connection_string
+DB_SSL=true
+ACCESS_TOKEN_SECRET=your_jwt_secret
+```
+
+### Frontend – Vercel
+
+```env
+REACT_APP_API_URL=https://restaurant-management-backend-ihdt.onrender.com/
+```
+
+**Security Note:** Never commit database credentials, JWT secrets, API keys or other sensitive information to GitHub. Configure them through the environment variable settings of the deployment platforms.
+
+## 💻 Local Setup
+
+Follow these steps to run the application locally.
+
+### 1. Clone the Repository
+
+```bash
+git clone https://github.com/Professor432/205226014.git
+cd 205226014
+```
+
+### 2. Start the Backend
+
+```bash
+cd Main/backend-node
+npm install
+```
+
+Configure the backend environment variables in a `.env` file, then run:
+
+```bash
+npm start
+```
+
+### 3. Start the Frontend
+
+Open another terminal:
+
+```bash
+cd Main/frontend
+npm install
+```
+
+Configure the frontend API URL to point to your local backend, then run:
+
+```bash
+npm start
+```
+
+The React application will normally be available at:
+
+```text
+http://localhost:3000
+```
+
+Make sure PostgreSQL is accessible and the backend database configuration is correct before starting the application.
+
+## 📊 Performance Testing – Apache JMeter
+
+Performance testing was conducted using Apache JMeter 5.6.3 against the deployed backend root endpoint.
+
+**Test configuration:**
+
+- Protocol: HTTPS
+- Request Method: GET
+- Endpoint: `/`
+- Virtual users: 10, 50 and 100
+- Loop count: 5
+
+### Performance Results
+
+| Metric | 10 Users | 50 Users | 100 Users |
+|---|---:|---:|---:|
+| Total Samples | 50 | 250 | 500 |
+| Average Response Time | 330 ms | 187 ms | 221 ms |
+| 95th Percentile | 443 ms | 279 ms | 392 ms |
+| Error Rate | 0% | 0% | 0% |
+| Throughput | ~5 req/sec | ~5 req/sec | ~5 req/sec |
+
+**Observation:**
+
+The final test runs recorded zero errors across all three load levels. Response time, throughput and percentile latency were used to evaluate backend performance.
+
+**Testing Limitation:** These tests were performed only on the basic backend root endpoint (`GET /`). They do not represent the performance of complete customer workflows such as order placement or payment processing, and they do not establish the maximum capacity of the application.
+
+## 📚 Distributed and Cloud Computing Concepts
+
+This project demonstrates several concepts covered in the Distributed and Cloud Computing course:
+
+- **Three-Tier Architecture:** Separation of presentation, application and data layers.
+- **Client-Server Model:** Clients communicate with a central backend server.
+- **Inter-Process Communication (IPC):** REST APIs enable communication between frontend and backend.
+- **Concurrency:** The backend handles multiple incoming requests.
+- **Database Transactions:** Selected operations use `BEGIN`, `COMMIT` and `ROLLBACK` to maintain data consistency.
+- **Authentication and Security:** Password hashing and JWT-based authentication.
+- **Public Cloud Computing:** Application components are deployed on cloud platforms.
+- **Performance Evaluation:** Apache JMeter is used to measure response time, throughput and error rate.
+
+## 🚀 Future Enhancements
+
+- Implement automated scaling and load balancing.
+- Add caching to improve response times.
+- Introduce monitoring and logging for production analysis.
+- Perform load testing on complete application workflows.
+- Explore containerization using Docker.
+- Explore microservices architecture for independently scalable services.
+
+## 👨‍💻 Author
+
+**Manan Patel**
+
+- Roll Number: 205226014
+- Programme: M.Tech – Data Analytics
+- Institution: National Institute of Technology, Tiruchirappalli
+
+## 📄 Academic Context
+
+**Course:** Distributed and Cloud Computing  
+**Course Code:** CA6B1
+
+This project was developed as part of the academic work to apply distributed computing, cloud deployment and performance evaluation concepts in a practical application.
