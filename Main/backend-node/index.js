@@ -175,8 +175,10 @@ app.get('/', async (req, res) => {
 
 if (require.main === module) {
     initializeDatabase().then(() => {
-        app.listen(SERVER_PORT, () => {
-            console.log(`SERVER listening on PORT_NO = ${SERVER_PORT}`);
+        const PORT = process.env.PORT || SERVER_PORT;
+
+        app.listen(PORT, () => {
+            console.log(`Server running on port ${PORT}`);
         });
     }).catch((error) => {
         console.error("Unable to initialize database:", error.message);
